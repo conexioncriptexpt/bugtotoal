@@ -95,3 +95,5 @@ windows/**/obj/
 windows/installer/Output/
 
 frontend/node_modules/.cache/default-development/5.pack
+frontend/node_modules/.cache/default-development/1.pack
+frontend/node_modules/.cache/default-development/6.pack_

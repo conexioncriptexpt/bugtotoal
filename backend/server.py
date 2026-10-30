@@ -35,7 +35,7 @@ def rate_limit(key: str, limit: int, window: int = 60):
 
 def client_ip(request: Request) -> str:
     fwd = request.headers.get("x-forwarded-for", "")
-    return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "")
+    return fwd.split(",")[-1].strip() if fwd else (request.client.host if request.client else "")
 
 
 # ---------- models ----------
@@ -524,7 +524,9 @@ async def list_devices(q: str = "", os_filter: str = "", status: str = "", membe
 @api.patch("/devices/{did}")
 async def rename_device(did: str, body: DevicePatch, member: dict = Depends(current_member)):
     scope = await _device_scope(member)
-    res = await db.devices.update_one({"id": did, **scope}, {"$set": {"name": body.name}})
+    if scope and did not in scope["id"]["$in"]:
+        raise HTTPException(status_code=404, detail="Dispositivo não encontrado")
+    res = await db.devices.update_one({"id": did}, {"$set": {"name": body.name}})
     if not res.matched_count:
         raise HTTPException(status_code=404, detail="Dispositivo não encontrado")
     await db.support_requests.update_many({"device_id": did}, {"$set": {"device_name": body.name}})

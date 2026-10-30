@@ -44,7 +44,8 @@ export function useViewerRtc(rt, sessionId, enabled) {
       else pending.current.push(candidate);
     };
     const onStatus = (d) => {
-      if (d.session_id === sessionId && d.device_connected === true) join();
+      // only re-join on a device (re)connect broadcast, not on the join reply (which carries "status") -> avoids join loop
+      if (d.session_id === sessionId && d.device_connected === true && !("status" in d)) join();
     };
     const offs = [
       rt.on("webrtc:offer", onOffer),

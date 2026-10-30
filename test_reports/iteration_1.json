@@ -1,0 +1,52 @@
+{
+  "summary": "First full E2E run of Crypto Conex (backend + CRM + public connect page). Backend: 26 pytest tests (public, auth/roles 401/403, queue assign/take/reject, session accept/transfer/end, tech isolation, links lifecycle, devices CRUD, technicians CRUD, settings, audit, WS signalling/privacy/chat/command guards, rate limiting); 25/26 pass. One real bug: a technician can rename ANY device (scope-merge bug). Frontend: public page (desktop + 390px mobile), /assistir valid/invalid/revoked, Clerk ticket sign-in for admin/tech1/a Clerk user with no profile, refresh keeps the session, sign-out goes back to /sign-in, dashboard KPIs, Lisbon clock ticking, exact footer text, queue assign dialog + 'Atender eu', viewer accept, full WebRTC (headless getDisplayMedia replaced by a canvas.captureStream() stub, then a real RTCPeerConnection over the backend TURN/ICE: viewer-pc-state=connected and the video receives frames), zoom, side panel, command-console-web, two-way chat, privacy overlay on/request/disable, end -> public-ended, Histórico row with DD/MM/AAAA HH:mm dates, transfer in the Sessions page -> client sees the new technician, tech1 accepts again -> connected, client WS drop -> RealtimeClient reconnects and video continues, Devices search/rename/history/delete/filters, Links create/copy/revoke, Configurações technician add/edit/permissions/active/activity/delete, Sistema save, Auditoria list, technician gets no Configurações nav and a blocked message. CRITICAL bug found in the WebRTC viewer: an endless session:join loop meant WebRTC NEVER reached 'connected' (stuck at 'connecting', 198 'setRemoteDescription wrong state: stable' unhandled rejections, and the Emergent error overlay blocked the client chat). I applied a minimal fix in 2 frontend hooks. After that every viewer flow passed.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PATCH /api/devices/{did}", "issue": "Technician scope bypass and wrong-row update: query built as {'id': did, **scope}, and for technicians scope = {'id': {'$in': ids}}, which OVERWRITES the 'id' key. update_one therefore renames the FIRST device in the technician's history, not 'did'. Reproduced: tech2 PATCH on a device it never served -> 200, and a different device got renamed, while support_requests/sessions of 'did' were also renamed (update_many by did runs without any scope check). Fix: q = {'id': did}; if scope: q['$and'] = [scope], or check did in ids -> 404.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/public/connect (rate limit)", "issue": "client_ip() trusts the FIRST X-Forwarded-For entry, which the client controls. Sending a random X-Forwarded-For header on each request bypasses the 10/min limit entirely (verified: dozens of connects with random XFF, never a 429; same XFF -> 429 after 10). Use the right-most/trusted proxy hop or the ingress real-IP header."},
+      {"endpoint": "support_requests lifecycle", "issue": "Pending requests from web clients that close the tab without pressing TERMINAR are never expired or auto-cancelled on device disconnect, so the queue fills with stale 'Offline' PENDENTE items (44 pending seen on the dashboard). Consider auto-cancel after a device has been offline for N minutes, or a TTL."},
+      {"endpoint": "end_session audit", "issue": "The audit actor for sessao.terminada is the technician NAME ('TEST Técnico Um'), while all other actions use the email. This makes the audit log inconsistent."},
+      {"endpoint": "Device token reconnect", "issue": "Device JWT TTL is 4h. RealtimeClient keeps reusing the same token, so after expiry the reconnects fail forever with 4401. No refresh path exists."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "useViewerRtc.js (Viewer)", "issue": "FIXED BY TESTER (please review): onStatus re-joined whenever session:status had device_connected===true. But the server's reply to session:join is itself a session:status with device_connected:true, so this was an infinite join loop. Each join made the server emit technician:joined, the device recreated its RTCPeerConnection and sent a new offer, and the viewer tore down its pc. WebRTC never connected. Fix applied: ignore the join reply (only re-join when the payload has no 'status' key).", "selector": "[data-testid=viewer-pc-state]", "priority": "CRITICAL"},
+      {"component": "useDeviceSession.js (client)", "issue": "FIXED BY TESTER: the webrtc:answer handler called setRemoteDescription regardless of signalingState, which caused unhandled rejections ('Called in wrong state: stable'). These triggered the Emergent error overlay, and that overlay intercepted clicks on client-chat-send. Added a guard (signalingState === 'have-local-offer') and a catch.", "selector": "[data-testid=client-chat-send]", "priority": "HIGH"},
+      {"component": "CrmContext.jsx", "issue": "Under React.StrictMode (dev), the effect runs twice. The cleanup runs before api.get('/me') resolves, so client is still undefined and the first RealtimeClient leaks: 2 WebSockets per CRM tab, causing duplicate events and joins. The header briefly showed 'A RELIGAR…' after load. Use a cancelled flag or create the client synchronously.", "selector": "[data-testid=realtime-status]", "priority": "LOW"}
+    ],
+    "integration_issues": [
+      {"flow": "WebRTC quality", "issue": "Remote video arrives at only 320x180 from a 1280x720 source (still the case after ~5s and after reconnect). For screen sharing, consider track.contentHint='detail', degradationPreference='maintain-resolution', and raising maxBitrate on the sender. 'Débito' shows '—' during the first samples.", "affected_selectors": ["remote-screen-video", "viewer-resolution"]}
+    ],
+    "design_issues": [
+      {"screen": "Public page", "issues": ["public-detected-os text (#64748B, ~11px mono) has low contrast on the dark background", "Logo emblem.png has a visible dark square background (not transparent) behind the coins"]},
+      {"screen": "CRM header", "issues": ["Sonner toasts (top-right) cover the header member name/avatar", "Mobile 390px: the nav is a horizontal scroll bar above the logo, and the 'Ate…' item is cut off without any scroll affordance"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_crypto_conex_api.py", "/app/backend/tests/conftest.py", "/app/backend/tests/clerk_tickets.py", "/app/backend/tests/cleanup_test_data.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Fix PATCH /api/devices/{did} scope merge ({'id': did, **scope} overwrites id): technicians can rename arbitrary or wrong devices",
+    "Review and keep the tester's fix in frontend/src/hooks/useViewerRtc.js (join loop) and useDeviceSession.js (answer state guard). Optionally also de-duplicate technician:joined -> startPeer so that multiple joins do not recreate the peer",
+    "Harden rate limiting against a spoofed X-Forwarded-For",
+    "Auto-expire or cancel stale pending requests from offline web devices",
+    "Fix the CrmContext StrictMode leak of RealtimeClient",
+    "Improve screen-share resolution (contentHint/degradationPreference/maxBitrate)",
+    "Minor: consistent audit actor (email), contrast of the detected-OS text"
+  ],
+  "critical_code_review_comments": [
+    "server.py _device_scope merged into the filter with dict-unpacking: the same pattern must be avoided anywhere a scope dict and an explicit id key coexist",
+    "rename_device update_many on support_requests/sessions runs even if the scoped device update matched a different doc",
+    "realtime.on_join always replies session:status, and clients must not treat this reply as a 'device reconnected' signal (root cause of the loop)",
+    "useDeviceSession: technician:joined always calls startPeer() (closes and recreates the pc), so redundant joins (initial + _state open + session:started) cause renegotiation churn",
+    "server.py is 602 lines, close to the 700 limit; consider splitting the routers"
+  ],
+  "updated_files": ["/app/frontend/src/hooks/useViewerRtc.js", "/app/frontend/src/hooks/useDeviceSession.js", "/app/backend/tests/conftest.py", "/app/backend/tests/test_crypto_conex_api.py", "/app/backend/tests/clerk_tickets.py", "/app/backend/tests/clerk_noprofile_user.py", "/app/backend/tests/cleanup_open_sessions.py", "/app/backend/tests/cleanup_test_data.py", "/app/memory/test_credentials.md"],
+  "success_rate": {"backend": "96% (25/26; device rename scope bug)", "frontend": "~95% after tester fix (WebRTC viewer was 0% before the fix)"},
+  "seed_data_creation": "Created a Clerk user semperfil+clerk_test@cryptoconex.pt (no CRM profile) for the access-denied test (recorded in test_credentials.md). Test devices/requests/links/technicians use the TEST_ prefix. TEST_ pending requests were cancelled and TEST_OS devices deleted via cleanup_test_data.py. Revoked TEST links and ended sessions remain in history.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Headless screen share: add_init_script overriding navigator.mediaDevices.getDisplayMedia to return canvas.captureStream(15). WebRTC then really connects via the backend ICE/TURN. Sign-in: run clerk_tickets.py, then in the page goto /sign-in, wait for window.Clerk.loaded, and call Clerk.client.signIn.create({strategy:'ticket'}) + setActive (the ?__clerk_ticket URL was flaky). Tickets are single use. Before UI viewer tests, run cleanup_open_sessions.py so that session-open-* .first picks the new session. To simulate a WS drop: wrap window.WebSocket in the init script and close window.__ws.at(-1). Not verified: real OS screen picker, native Android/Windows apps, remote control commands (web clients never grant consent.control; only checked through the WS error path).",
+  "rca of the issue": "WebRTC stuck at 'connecting': the viewer sends session:join -> the server replies session:status{device_connected:true,status} -> useViewerRtc.onStatus calls join() again -> infinite loop. Each join -> technician:joined to the device -> startPeer() closes the pc and sends a new offer -> the viewer recreates its pc. Answers arrive for stale pcs -> setRemoteDescription in the 'stable' state (198 unhandled rejections) -> the Emergent overlay blocks clicks. Mitigation applied: only re-join on broadcasts without 'status' + an answer signalingState guard. Verified: connected within 1-3s, video frames received, the chat/privacy/end/transfer/reconnect flows all pass."
+}

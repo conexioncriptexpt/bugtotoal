@@ -17,16 +17,21 @@ export function CrmProvider({ children }) {
   useEffect(() => {
     setTokenGetter(() => tokenRef.current());
     let client;
+    let cancelled = false;
     api.get("/me")
       .then(({ data }) => {
+        if (cancelled) return;
         setMember(data);
         client = new RealtimeClient(async () => `kind=user&token=${encodeURIComponent(await tokenRef.current())}`);
         client.on("_state", (s) => setRtState(s.state));
         client.connect();
         setRt(client);
       })
-      .catch((e) => setError({ status: e?.response?.status, message: errMsg(e, "Não foi possível carregar a sua conta.") }));
-    return () => client?.close();
+      .catch((e) => !cancelled && setError({ status: e?.response?.status, message: errMsg(e, "Não foi possível carregar a sua conta.") }));
+    return () => {
+      cancelled = true;
+      client?.close();
+    };
   }, []);
 
   return <Ctx.Provider value={{ member, error, rt, rtState, isAdmin: member?.role === "super_admin" }}>{children}</Ctx.Provider>;

@@ -92,8 +92,8 @@ export function useDeviceSession(linkToken, soundOn) {
       startPeer().catch(() => setError("Falha ao iniciar a transmissão."));
     });
     rt.on("webrtc:answer", async ({ sdp }) => {
-      if (!s.pc) return;
-      await s.pc.setRemoteDescription(sdp);
+      if (!s.pc || s.pc.signalingState !== "have-local-offer") return;
+      await s.pc.setRemoteDescription(sdp).catch(() => {});
       for (const c of s.pending) await s.pc.addIceCandidate(c).catch(() => {});
       s.pending = [];
     });
@@ -138,6 +138,7 @@ export function useDeviceSession(linkToken, soundOn) {
     }
     const s = r.current;
     s.stream = stream;
+    stream.getVideoTracks()[0].contentHint = "detail";
     stream.getVideoTracks()[0].onended = () => end();
     setPhase("registering");
     try {

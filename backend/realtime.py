@@ -307,9 +307,27 @@ async def ws_endpoint(ws: WebSocket, token: str = "", kind: str = "user"):
             await hub.emit("admin:global", "technician:presence", {"technician_id": conn.id, "online": False})
 
 
+async def expire_stale_requests(offline_minutes: int = 5):
+    from core import ago_iso
+    online = hub.online_ids("device:")
+    stale = await db.devices.distinct("id", {"last_seen": {"$lt": ago_iso(minutes=offline_minutes)}})
+    ids = [d for d in stale if d not in online]
+    if not ids:
+        return
+    pending = await db.support_requests.find({"status": "pending", "device_id": {"$in": ids}}, {"_id": 0}).to_list(1000)
+    for r in pending:
+        await db.support_requests.update_one({"id": r["id"]}, {"$set": {"status": "cancelled", "closed_at": now_iso(), "close_reason": "dispositivo offline"}})
+        rooms = ["admin:global"] + ([f"technician:{r['target_technician_id']}"] if r.get("target_technician_id") else [])
+        await hub.emit_many(rooms, "support:cancelled", {"request_id": r["id"]})
+
+
 async def heartbeat_loop():
     while True:
         await asyncio.sleep(60)
         online = list(hub.online_ids("device:"))
         if online:
             await db.devices.update_many({"id": {"$in": online}}, {"$set": {"last_seen": now_iso()}})
+        try:
+            await expire_stale_requests()
+        except Exception as e:
+            log.warning(f"expire_stale_requests failed {e}")
