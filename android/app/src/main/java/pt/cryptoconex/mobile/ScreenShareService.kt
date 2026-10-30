@@ -120,25 +120,28 @@ class ScreenShareService : Service() {
         return object : CapturerObserver {
             override fun onCapturerStarted(ok: Boolean) = target.onCapturerStarted(ok)
             override fun onCapturerStopped() = target.onCapturerStopped()
+            // Deliver every frame as I420 with one monotonic clock: mixing texture/I420 buffers or capture/nanoTime
+            // timestamps makes the encoder reset or drop frames (frozen image).
             override fun onFrameCaptured(frame: VideoFrame) {
-                val copy = frame.buffer.toI420()
+                val copy = frame.buffer.toI420() ?: return
                 lastI420?.release(); lastI420 = copy
-                lastFrameAt = System.currentTimeMillis()
-                target.onFrameCaptured(frame)
+                deliver(copy)
             }
         }
+    }
+
+    private fun deliver(buf: VideoFrame.I420Buffer) {
+        buf.retain()
+        val f = VideoFrame(buf, 0, System.nanoTime())
+        downstream?.onFrameCaptured(f)
+        f.release()
+        lastFrameAt = System.currentTimeMillis()
     }
 
     private val repeatTick = object : Runnable {
         override fun run() {
             val buf = lastI420
-            if (buf != null && System.currentTimeMillis() - lastFrameAt >= REPEAT_MS) {
-                buf.retain()
-                val f = VideoFrame(buf, 0, System.nanoTime())
-                downstream?.onFrameCaptured(f)
-                f.release()
-                lastFrameAt = System.currentTimeMillis()
-            }
+            if (buf != null && System.currentTimeMillis() - lastFrameAt >= REPEAT_MS) deliver(buf)
             captureHandler?.postDelayed(this, REPEAT_MS)
         }
     }
@@ -193,7 +196,11 @@ class ScreenShareService : Service() {
             override fun onAddTrack(p0: RtpReceiver?, p1: Array<out MediaStream>?) {}
         })
         val sender = pc!!.addTrack(track, listOf("screen"))
-        sender.parameters.let { p -> p.degradationPreference = RtpParameters.DegradationPreference.BALANCED; sender.parameters = p }
+        sender.parameters.let { p ->
+            p.degradationPreference = RtpParameters.DegradationPreference.MAINTAIN_FRAMERATE
+            p.encodings.forEach { e -> e.maxBitrateBps = 2_500_000; e.minBitrateBps = 300_000; e.maxFramerate = 15 }
+            sender.parameters = p
+        }
         pc!!.createOffer(object : SdpAdapter() {
             override fun onCreateSuccess(sdp: SessionDescription) {
                 pc!!.setLocalDescription(SdpAdapter(), sdp)

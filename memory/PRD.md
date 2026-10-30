@@ -28,6 +28,10 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 5)
+- Removido botão "TERMINAR ASSISTÊNCIA" do ecrã de privacidade Android (fim continua possível pela notificação e pelo botão da app)
+- Corrigida imagem congelada: todos os fotogramas enviados como I420 com relógio monotónico único; MAINTAIN_FRAMERATE, 300 kbps–2,5 Mbps, 15 fps
+
 ## Update 2026-10-30 (iteração 4)
 - Corrigido ecrã preto (0 fps) no Android: MediaProjection só emite fotogramas quando o ecrã muda; ScreenShareService agora guarda cópia I420 do último fotograma e reenvia a cada 250 ms
 - Visualizador: ontrack com fallback de MediaStream + play() explícito

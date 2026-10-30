@@ -11,7 +11,6 @@ import android.view.Gravity
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import org.json.JSONArray
@@ -130,10 +129,6 @@ class AssistAccessibilityService : AccessibilityService() {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundColor(Color.BLACK)
             addView(TextView(context).apply { text = getString(R.string.privacy_msg); textSize = 28f; setTextColor(Color.WHITE); gravity = Gravity.CENTER })
-            addView(Button(context).apply {
-                text = getString(R.string.end); textSize = 20f
-                setOnClickListener { ScreenShareService.instance?.endSession(true) }
-            })
         }
         val lp = WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.OPAQUE)
