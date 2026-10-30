@@ -28,6 +28,9 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 6)
+- Corrigido 500 em /api/me na produção: perfil migrado do preview tinha user_id do Clerk de teste; resolve_member agora religa pelo e-mail verificado quando o perfil está por ligar ou foi ligado noutra instância (env diferente)
+
 ## Update 2026-10-30 (iteração 5)
 - Removido botão "TERMINAR ASSISTÊNCIA" do ecrã de privacidade Android (fim continua possível pela notificação e pelo botão da app)
 - Corrigida imagem congelada: todos os fotogramas enviados como I420 com relógio monotónico único; MAINTAIN_FRAMERATE, 300 kbps–2,5 Mbps, 15 fps

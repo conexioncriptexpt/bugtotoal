@@ -85,7 +85,9 @@ async def resolve_member(uid: str) -> dict:
         verified = [e["email_address"].lower() for e in cu.get("email_addresses", [])
                     if (e.get("verification") or {}).get("status") == "verified"]
         name = " ".join(x for x in [cu.get("first_name"), cu.get("last_name")] if x) or (verified[0].split("@")[0] if verified else "Utilizador")
-        profile = await db.users.find_one({"email": {"$in": verified}, "user_id": None}, {"_id": 0}) if verified else None
+        # Link by verified email: unlinked profiles, or ones linked in the other Clerk instance (preview <-> live).
+        profile = await db.users.find_one({"email": {"$in": verified}, "$or": [{"user_id": None}, {"env": {"$ne": ENV}}]},
+                                          {"_id": 0}) if verified else None
         if profile:
             await db.users.update_one({"id": profile["id"]}, {"$set": {"user_id": uid, "env": ENV, "linked_at": now_iso()}})
             member = {**profile, "user_id": uid}
