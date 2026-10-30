@@ -1,5 +1,6 @@
 import { SignIn, SignUp } from "@clerk/react";
 import { Link } from "react-router-dom";
+import { PasswordGenerator } from "@/components/cc/PasswordGenerator";
 
 const Side = () => (
   <div className="hidden lg:flex flex-col justify-between w-[44%] p-12 border-r border-[#222736] bg-[#0E1017]">
@@ -27,5 +28,8 @@ export const SignInPage = () => (
 );
 
 export const SignUpPage = () => (
-  <Frame><SignUp routing="path" path="/sign-up" signInUrl="/sign-in" /></Frame>
+  <Frame>
+    <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" />
+    <PasswordGenerator />
+  </Frame>
 );

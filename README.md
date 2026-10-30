@@ -55,6 +55,18 @@ iscc ..\installer\CryptoConex.iss   # gera CryptoConexSetup.exe
 ```
 Ver `docs/WINDOWS.md`.
 
+## Publicar as apps no GitHub (um clique para o cliente)
+1. Envie este projeto para `https://github.com/conexioncriptexpt/Atualizarapp2` (botão "Save to GitHub" da Emergent).
+2. O workflow **native-release** corre sozinho (ou em Actions → native-release → Run workflow) e cria uma Release com
+   `CryptoConex.apk` e `CryptoConexSetup.exe`.
+3. O botão **DESCARREGAR APLICAÇÃO** do site já aponta para
+   `https://github.com/conexioncriptexpt/Atualizarapp2/releases/latest/download/CryptoConex.apk` (Android) e
+   `.../CryptoConexSetup.exe` (Windows), escolhidos automaticamente pelo sistema do visitante.
+4. Depois de publicar o site num domínio próprio, defina em GitHub → Settings → Secrets and variables → Actions →
+   Variables: `CC_BACKEND_URL=https://o-seu-dominio.pt` e volte a correr o workflow (as apps usam o URL de pré-visualização por omissão).
+5. Opcional (assinatura própria do APK): secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+   Sem eles o APK é assinado com chave de desenvolvimento (instala normalmente; o Android pede para permitir "fontes desconhecidas").
+
 ## Downloads na página pública
 Configure `ANDROID_DOWNLOAD_URL` e `WINDOWS_DOWNLOAD_URL` no backend (ex.: assets de uma GitHub Release).
 O workflow `.github/workflows/native-release.yml` compila o APK e o instalador e anexa-os à release (tag `v*`).

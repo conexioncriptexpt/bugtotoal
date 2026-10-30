@@ -13,15 +13,28 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
-        val backend = (project.findProperty("CC_BACKEND_URL") as String?) ?: "https://dominio.pt"
+        val backend = (project.findProperty("CC_BACKEND_URL") as String?)?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
+            ?: "https://conex-assist-1--3cd6kodu.preview.emergentagent.com"
         buildConfigField("String", "BACKEND_URL", "\"$backend\"")
     }
 
+    val releaseKeystore = file("release.jks")
+    signingConfigs {
+        if (releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("CC_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("CC_KEY_ALIAS")
+                keyPassword = System.getenv("CC_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Configure signingConfigs via keystore.properties (never commit the keystore).
+            // Own keystore (GitHub secrets) when available; otherwise debug-signed so the APK is still installable.
+            signingConfig = if (releaseKeystore.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
     buildFeatures { buildConfig = true }

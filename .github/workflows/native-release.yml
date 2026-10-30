@@ -1,9 +1,17 @@
 name: native-release
 
+# Compila a app Android (APK) e a app Windows (instalador .exe) e publica-as numa GitHub Release.
+# O botão "DESCARREGAR APLICAÇÃO" do site aponta para .../releases/latest/download/<ficheiro>.
+# Configurar em Settings > Secrets and variables > Actions > Variables: CC_BACKEND_URL (ex.: https://o-seu-dominio.pt)
+
 on:
   push:
-    tags: ["v*"]
+    branches: [main, master]
+    paths: ["android/**", "windows/**", ".github/workflows/native-release.yml"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   android:
@@ -12,11 +20,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: "8.7" }
-      - run: gradle assembleDebug -PCC_BACKEND_URL=${{ vars.CC_BACKEND_URL }}
+      - name: Keystore (opcional, via secrets)
+        if: ${{ env.KS != '' }}
+        env: { KS: "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" }
+        run: echo "$KS" | base64 -d > android/app/release.jks
+      - name: Build APK
         working-directory: android
-      - run: cp android/app/build/outputs/apk/debug/app-debug.apk CryptoConex.apk
+        env:
+          CC_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CC_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CC_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon -PCC_BACKEND_URL=${{ vars.CC_BACKEND_URL }}
+      - run: cp android/app/build/outputs/apk/release/app-release.apk CryptoConex.apk
       - uses: actions/upload-artifact@v4
         with: { name: apk, path: CryptoConex.apk }
 
@@ -26,25 +43,30 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: "8.0.x" }
-      - shell: pwsh
+      - name: Build + installer
+        shell: pwsh
         run: |
-          $cfg = @{ BackendUrl = "${{ vars.CC_BACKEND_URL }}" } | ConvertTo-Json
-          Set-Content windows/CryptoConex/appsettings.json $cfg
-          dotnet publish windows/CryptoConex -c Release
-          choco install innosetup -y
-          iscc windows/installer/CryptoConex.iss
+          if ("${{ vars.CC_BACKEND_URL }}") {
+            @{ BackendUrl = "${{ vars.CC_BACKEND_URL }}" } | ConvertTo-Json | Set-Content windows/CryptoConex/appsettings.json
+          }
+          dotnet publish windows/CryptoConex/CryptoConex.csproj -c Release
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows/installer/CryptoConex.iss
       - uses: actions/upload-artifact@v4
         with: { name: exe, path: windows/installer/Output/CryptoConexSetup.exe }
 
   release:
     needs: [android, windows]
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
-    permissions: { contents: write }
     steps:
       - uses: actions/download-artifact@v4
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Crypto Conex v1.0.${{ github.run_number }}
+          make_latest: "true"
+          body: |
+            CryptoConex.apk — Android (8.0+). CryptoConexSetup.exe — Windows 10/11 (x64).
           files: |
             apk/CryptoConex.apk
             exe/CryptoConexSetup.exe

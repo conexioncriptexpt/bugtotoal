@@ -30,7 +30,7 @@ public sealed class DesktopDuplicator : IDisposable
         output.Dispose();
         _staging = _device.CreateTexture2D(new Texture2DDescription
         {
-            Width = (uint)Width, Height = (uint)Height, MipLevels = 1, ArraySize = 1, Format = Format.B8G8R8A8_UNorm,
+            Width = Width, Height = Height, MipLevels = 1, ArraySize = 1, Format = Format.B8G8R8A8_UNorm,
             SampleDescription = new SampleDescription(1, 0), Usage = ResourceUsage.Staging, CPUAccessFlags = CpuAccessFlags.Read,
         });
     }

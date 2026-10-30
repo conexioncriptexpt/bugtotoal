@@ -27,3 +27,10 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
+
+## Update 2026-10-30 (iteração 2)
+- Apps nativas compiladas com sucesso neste ambiente: Android `assembleRelease` (APK 48 MB) e Windows `dotnet publish` (exe self-contained); corrigido erro de tipos em DesktopDuplicator.cs
+- Workflow GitHub `native-release.yml`: em cada push (android/, windows/) ou manual → APK + instalador Inno Setup → GitHub Release "latest" com CryptoConex.apk / CryptoConexSetup.exe
+- Repositório: https://github.com/conexioncriptexpt/Atualizarapp2 ; botão DESCARREGAR aponta para releases/latest/download/... (Android/Windows por SO)
+- APK assinado com keystore próprio se os secrets existirem, senão com chave de desenvolvimento; URL do backend por omissão = pré-visualização, sobreponível com a variável CC_BACKEND_URL
+- Gerador local de palavra-passe forte aleatória (24 caracteres, crypto.getRandomValues) na página /sign-up
