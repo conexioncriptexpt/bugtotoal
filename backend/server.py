@@ -9,10 +9,9 @@ from pydantic import BaseModel, Field, EmailStr
 from starlette.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
-from clerk_auth import clerk_router
 from core import (db, log, client, now_iso, ago_iso, new_id, random_token, audit, current_member, require_super_admin,
-                  create_device_token, any_caller, ice_servers, get_settings, clerk_set_password,
-                  DEFAULT_PERMISSIONS, ENV, DEVICE_TOKEN_TTL)
+                  create_device_token, any_caller, ice_servers, get_settings, hash_password, check_password,
+                  create_user_token, seed_admins, DEFAULT_PERMISSIONS, DEVICE_TOKEN_TTL)
 from realtime import ws_router, hub, end_session, log_op, session_rooms, heartbeat_loop, THUMBS
 
 app = FastAPI(title="Crypto Conex API")
@@ -54,6 +53,7 @@ class TechIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
     role: Literal["technician", "super_admin"] = "technician"
     permissions: dict = Field(default_factory=lambda: dict(DEFAULT_PERMISSIONS))
+    password: Optional[str] = Field(default=None, min_length=10, max_length=128)
 
 
 class TechPatch(BaseModel):
@@ -64,7 +64,17 @@ class TechPatch(BaseModel):
 
 
 class PasswordIn(BaseModel):
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=10, max_length=128)
+
+
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordIn(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=10, max_length=128)
 
 
 class AssignIn(BaseModel):
@@ -90,7 +100,7 @@ class SettingsIn(BaseModel):
 
 def public_user(u: dict) -> dict:
     return {k: u.get(k) for k in ("id", "email", "name", "role", "active", "permissions", "created_at", "linked_at")} | {
-        "linked": bool(u.get("user_id")), "online": hub.present(f"technician:{u['id']}")}
+        "linked": bool(u.get("password_hash")), "online": hub.present(f"technician:{u['id']}")}
 
 
 def link_view(link: dict) -> dict:
@@ -189,6 +199,42 @@ async def public_cancel(caller: dict = Depends(any_caller)):
 @api.get("/ice-servers")
 async def get_ice(caller: dict = Depends(any_caller)):
     return {"iceServers": await run_in_threadpool(ice_servers)}
+
+
+# ---------- auth ----------
+_fails: dict = {}
+LOCK_AFTER, LOCK_SECONDS = 5, 15 * 60
+
+
+@api.post("/auth/login")
+async def login(body: LoginIn, request: Request):
+    rate_limit(f"login:{client_ip(request)}", 20)
+    email = body.email.lower()
+    count, since = _fails.get(email, (0, 0.0))
+    if count and time.time() - since >= LOCK_SECONDS:
+        count, since = 0, 0.0
+    if count >= LOCK_AFTER:
+        raise HTTPException(status_code=429, detail="Demasiadas tentativas falhadas. Aguarde 15 minutos.")
+    u = await db.users.find_one({"email": email}, NO_ID)
+    if not u or not check_password(body.password, u.get("password_hash")):
+        _fails[email] = (count + 1, since or time.time())
+        raise HTTPException(status_code=401, detail="Email ou palavra-passe incorretos")
+    if not u.get("active", True):
+        raise HTTPException(status_code=403, detail="Conta desativada. Contacte o Super Admin.")
+    _fails.pop(email, None)
+    await db.users.update_one({"id": u["id"]}, {"$set": {"last_login_at": now_iso()}})
+    await audit(email, "sessao.iniciada", u["id"])
+    return {"token": create_user_token(u), "user": public_user(u)}
+
+
+@api.post("/auth/change-password")
+async def change_password(body: ChangePasswordIn, member: dict = Depends(current_member)):
+    if not check_password(body.current_password, member.get("password_hash")):
+        raise HTTPException(status_code=400, detail="A palavra-passe atual está incorreta")
+    pwv = member.get("pw_version", 0) + 1
+    await db.users.update_one({"id": member["id"]}, {"$set": {"password_hash": hash_password(body.new_password), "pw_version": pwv}})
+    await audit(member["email"], "palavra_passe.alterada", member["id"])
+    return {"ok": True, "token": create_user_token({**member, "pw_version": pwv})}
 
 
 # ---------- me / dashboard ----------
@@ -407,7 +453,7 @@ async def end_session_api(sid: str, member: dict = Depends(current_member)):
 # ---------- technicians ----------
 @api.get("/technicians")
 async def list_techs(member: dict = Depends(current_member)):
-    users = await db.users.find({"$or": [{"env": {"$in": [ENV, None]}}, {"user_id": None}]}, NO_ID).sort("created_at", 1).to_list(1000)
+    users = await db.users.find({}, NO_ID).sort("created_at", 1).to_list(1000)
     busy = set(await db.sessions.distinct("technician_id", {"status": {"$in": ["assigned", "active"]}}))
     if member["role"] != "super_admin":
         return [{"id": u["id"], "name": u["name"], "role": u["role"]} for u in users if u.get("active")]
@@ -419,8 +465,10 @@ async def create_tech(body: TechIn, admin: dict = Depends(require_super_admin)):
     email = body.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=409, detail="Já existe um perfil com este email")
-    u = {"id": new_id(), "user_id": None, "email": email, "name": body.name, "role": body.role, "active": True,
-         "permissions": {**DEFAULT_PERMISSIONS, **body.permissions}, "env": None, "created_at": now_iso()}
+    u = {"id": new_id(), "email": email, "name": body.name, "role": body.role, "active": True,
+         "permissions": {**DEFAULT_PERMISSIONS, **body.permissions}, "created_at": now_iso(), "pw_version": 1 if body.password else 0}
+    if body.password:
+        u["password_hash"] = hash_password(body.password)
     await db.users.insert_one({**u})
     await audit(admin["email"], "tecnico.criado", u["id"], {"email": email})
     return public_user(u)
@@ -460,9 +508,8 @@ async def set_tech_password(tid: str, body: PasswordIn, admin: dict = Depends(re
     u = await db.users.find_one({"id": tid}, NO_ID)
     if not u:
         raise HTTPException(status_code=404, detail="Perfil não encontrado")
-    if not u.get("user_id"):
-        raise HTTPException(status_code=409, detail="O técnico ainda não criou a conta. Peça-lhe para se registar com este email.")
-    await run_in_threadpool(clerk_set_password, u["user_id"], body.password)
+    await db.users.update_one({"id": tid}, {"$set": {"password_hash": hash_password(body.password),
+                                                     "pw_version": u.get("pw_version", 0) + 1}})
     await audit(admin["email"], "tecnico.palavra_passe_alterada", tid)
     return {"ok": True}
 
@@ -586,7 +633,6 @@ async def read_audit(limit: int = 200, admin: dict = Depends(require_super_admin
 
 
 app.include_router(api)
-app.include_router(clerk_router)
 app.include_router(ws_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
                    allow_methods=["*"], allow_headers=["*"])
@@ -604,7 +650,7 @@ async def apply_retention():
 async def startup():
     await db.users.create_index("id", unique=True)
     await db.users.create_index("email", unique=True)
-    await db.users.create_index("user_id")
+    await seed_admins()
     await db.devices.create_index("id", unique=True)
     await db.devices.create_index("installation_id", unique=True)
     await db.sessions.create_index("id", unique=True)

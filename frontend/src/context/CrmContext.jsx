@@ -1,28 +1,23 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { useAuth } from "@clerk/react";
-import { api, setTokenGetter, errMsg } from "@/lib/api";
+import { api, errMsg } from "@/lib/api";
+import { getToken } from "@/lib/auth";
 import { RealtimeClient } from "@/lib/realtime";
 
 const Ctx = createContext(null);
 
 export function CrmProvider({ children }) {
-  const { getToken } = useAuth();
   const [member, setMember] = useState(null);
   const [error, setError] = useState(null);
   const [rt, setRt] = useState(null);
   const [rtState, setRtState] = useState("connecting");
-  const tokenRef = useRef(getToken);
-  tokenRef.current = getToken;
-
   useEffect(() => {
-    setTokenGetter(() => tokenRef.current());
     let client;
     let cancelled = false;
     api.get("/me")
       .then(({ data }) => {
         if (cancelled) return;
         setMember(data);
-        client = new RealtimeClient(async () => `kind=user&token=${encodeURIComponent(await tokenRef.current())}`);
+        client = new RealtimeClient(async () => `kind=user&token=${encodeURIComponent(getToken() || "")}`);
         client.on("_state", (s) => setRtState(s.state));
         client.connect();
         setRt(client);
@@ -34,7 +29,7 @@ export function CrmProvider({ children }) {
     };
   }, []);
 
-  return <Ctx.Provider value={{ member, error, rt, rtState, isAdmin: member?.role === "super_admin" }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ member, setMember, error, rt, rtState, isAdmin: member?.role === "super_admin" }}>{children}</Ctx.Provider>;
 }
 
 export const useCrm = () => useContext(Ctx);

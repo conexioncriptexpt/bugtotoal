@@ -1,7 +1,7 @@
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
-import { Show, UserButton, useClerk } from "@clerk/react";
+import { getToken, clearToken } from "@/lib/auth";
 import { toast } from "sonner";
-import { LayoutDashboard, Monitor, Headset, MonitorSmartphone, Link2, Settings, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { LayoutDashboard, Monitor, Headset, MonitorSmartphone, Link2, Settings, ShieldCheck, Wifi, WifiOff, UserCog, LogOut } from "lucide-react";
 import { CrmProvider, useCrm, useRt, useLiveLoader } from "@/context/CrmContext";
 import { api } from "@/lib/api";
 import { Wordmark, LisbonClock } from "@/components/cc/Brand";
@@ -14,7 +14,13 @@ const NAV = [
   { to: "/crm/dispositivos", label: "Dispositivos", icon: MonitorSmartphone, id: "devices" },
   { to: "/crm/links", label: "Links de Assistência", icon: Link2, id: "links" },
   { to: "/crm/configuracoes", label: "Configurações", icon: Settings, id: "settings", admin: true },
+  { to: "/crm/conta", label: "A minha conta", icon: UserCog, id: "account" },
 ];
+
+const signOut = () => {
+  clearToken();
+  window.location.assign("/sign-in");
+};
 
 const SideNav = ({ isAdmin }) => {
   const { pathname } = useLocation();
@@ -65,7 +71,6 @@ const Counters = () => {
 
 const Shell = () => {
   const { member, error, isAdmin, rtState } = useCrm();
-  const { signOut } = useClerk();
   if (error) {
     return (
       <div className="min-h-screen grid place-items-center cc-grid-bg p-6">
@@ -101,7 +106,7 @@ const Shell = () => {
               <div className="text-sm font-semibold" data-testid="header-member-name">{member.name}</div>
               <div className="text-[11px] font-mono uppercase text-[#84CC16]" data-testid="header-member-role">{isAdmin ? "Super Admin" : "Técnico"}</div>
             </div>
-            <UserButton />
+            <button className="cc-btn-ghost p-2 rounded-lg" onClick={signOut} aria-label="Terminar sessão" title="Terminar sessão" data-testid="header-signout"><LogOut size={18} /></button>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-8 cc-fade-up"><Outlet /></main>
@@ -116,10 +121,6 @@ const Shell = () => {
 };
 
 export default function CrmLayout() {
-  return (
-    <>
-      <Show when="signed-in"><CrmProvider><Shell /></CrmProvider></Show>
-      <Show when="signed-out"><Navigate to="/sign-in" replace /></Show>
-    </>
-  );
+  if (!getToken()) return <Navigate to="/sign-in" replace />;
+  return <CrmProvider><Shell /></CrmProvider>;
 }

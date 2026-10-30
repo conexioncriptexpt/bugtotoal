@@ -15,12 +15,12 @@ const input = "w-full bg-[#0E1017] border border-[#2A3042] rounded-lg px-3 py-2.
 
 const TechDialog = ({ tech, onClose, onDone }) => {
   const editing = !!tech?.id;
-  const [f, setF] = useState({ name: tech?.name || "", email: tech?.email || "", role: tech?.role || "technician", permissions: tech?.permissions || { control: true, privacy: true, accessibility: true } });
+  const [f, setF] = useState({ name: tech?.name || "", email: tech?.email || "", password: "", role: tech?.role || "technician", permissions: tech?.permissions || { control: true, privacy: true, accessibility: true } });
   const save = async () => {
     try {
       if (editing) await api.patch(`/technicians/${tech.id}`, { name: f.name, role: f.role, permissions: f.permissions });
-      else await api.post("/technicians", f);
-      toast.success(editing ? "Perfil atualizado" : "Perfil criado. O técnico deve registar-se com este email.");
+      else await api.post("/technicians", { ...f, password: f.password || undefined });
+      toast.success(editing ? "Perfil atualizado" : "Perfil criado. Envie ao técnico o email e a palavra-passe.");
       onDone();
       onClose();
     } catch (e) {
@@ -32,11 +32,12 @@ const TechDialog = ({ tech, onClose, onDone }) => {
       <DialogContent className="bg-[#12141C] border-[#222736]" data-testid="tech-dialog">
         <DialogHeader>
           <DialogTitle className="font-display">{editing ? "Editar perfil" : "Novo técnico"}</DialogTitle>
-          {!editing && <DialogDescription>Depois de criado, o técnico regista-se em /sign-up com este email e define a própria palavra-passe.</DialogDescription>}
+          {!editing && <DialogDescription>Defina o email e a palavra-passe (mín. 10 caracteres) com que o técnico vai entrar.</DialogDescription>}
         </DialogHeader>
         <div className="space-y-3">
           <input className={input} placeholder="Nome" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} data-testid="tech-name-input" />
           <input className={input} placeholder="Email" type="email" value={f.email} disabled={editing} onChange={(e) => setF({ ...f, email: e.target.value })} data-testid="tech-email-input" />
+          {!editing && <input className={input} placeholder="Palavra-passe (mín. 10 caracteres)" type="text" autoComplete="new-password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} data-testid="tech-new-password-input" />}
           <div className="flex gap-2">
             {[["technician", "Técnico"], ["super_admin", "Super Admin"]].map(([v, l]) => (
               <button key={v} type="button" onClick={() => setF({ ...f, role: v })} className={`flex-1 py-2 rounded-lg text-sm border-2 ${f.role === v ? "border-[#84CC16] text-[#A3E635]" : "border-[#2A3042] text-[#94A3B8]"}`} data-testid={`tech-role-${v}`}>{l}</button>
@@ -72,9 +73,9 @@ const PasswordDialog = ({ tech, onClose }) => {
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="bg-[#12141C] border-[#222736]" data-testid="tech-password-dialog">
         <DialogHeader><DialogTitle className="font-display">Alterar palavra-passe — {tech.name}</DialogTitle>
-          <DialogDescription>Mínimo 8 caracteres. O técnico também pode usar “Esqueceu-se da palavra-passe?” no início de sessão.</DialogDescription></DialogHeader>
+          <DialogDescription>Mínimo 10 caracteres. A sessão atual do técnico termina e ele entra com a nova palavra-passe.</DialogDescription></DialogHeader>
         <input type="password" className={input} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" data-testid="tech-password-input" />
-        <DialogFooter><button className="cc-btn-lime px-4 py-2 rounded-lg disabled:opacity-40" disabled={pw.length < 8} onClick={save} data-testid="tech-password-save">Alterar</button></DialogFooter>
+        <DialogFooter><button className="cc-btn-lime px-4 py-2 rounded-lg disabled:opacity-40" disabled={pw.length < 10} onClick={save} data-testid="tech-password-save">Alterar</button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -126,14 +127,14 @@ const TechsTab = () => {
                 <td className="font-medium">{t.name}</td>
                 <td className="text-[#94A3B8]">{t.email}</td>
                 <td className="text-xs font-mono">{t.role === "super_admin" ? "SUPER ADMIN" : "TÉCNICO"}</td>
-                <td className="text-xs">{t.linked ? <span className="text-green-400">Registada</span> : <span className="text-amber-300">A aguardar registo</span>}</td>
+                <td className="text-xs">{t.linked ? <span className="text-green-400">Com palavra-passe</span> : <span className="text-amber-300">Sem palavra-passe</span>}</td>
                 <td>{t.busy ? <span className="text-xs text-amber-300">Ocupado</span> : <OnlineDot online={t.online} />}</td>
                 <td className="text-xs text-[#94A3B8]">{PERMS.filter(([k]) => t.permissions?.[k]).map(([, l]) => l).join(", ") || "—"}</td>
                 <td><Switch checked={t.active} disabled={t.id === member.id} onCheckedChange={(v) => toggle(t, v)} data-testid={`tech-active-${t.id}`} /></td>
                 <td><div className="flex gap-1 justify-end">
                   <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setAct(t)} aria-label="Atividade" data-testid={`tech-activity-${t.id}`}><Activity size={14} /></button>
                   <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setEdit(t)} aria-label="Editar" data-testid={`tech-edit-${t.id}`}><Pencil size={14} /></button>
-                  <button className="cc-btn-ghost p-2 rounded-lg disabled:opacity-30" disabled={!t.linked} onClick={() => setPw(t)} aria-label="Palavra-passe" data-testid={`tech-password-${t.id}`}><KeyRound size={14} /></button>
+                  <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setPw(t)} aria-label="Palavra-passe" data-testid={`tech-password-${t.id}`}><KeyRound size={14} /></button>
                   {t.id !== member.id && <button className="p-2 rounded-lg border-2 border-red-600/40 text-red-300 hover:bg-red-600/20" onClick={() => setDel(t)} aria-label="Eliminar" data-testid={`tech-delete-${t.id}`}><Trash2 size={14} /></button>}
                 </div></td>
               </tr>

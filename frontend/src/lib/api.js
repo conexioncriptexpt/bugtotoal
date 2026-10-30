@@ -1,9 +1,10 @@
 import axios from "axios";
+import { getToken, clearToken } from "@/lib/auth";
 
 export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const WS_URL = BACKEND_URL.replace(/^http/, "ws");
 
-let tokenGetter = null;
+let tokenGetter = getToken;
 export const setTokenGetter = (fn) => {
   tokenGetter = fn;
 };
@@ -15,6 +16,14 @@ api.interceptors.request.use(async (cfg) => {
     if (t) cfg.headers.Authorization = `Bearer ${t}`;
   }
   return cfg;
+});
+
+api.interceptors.response.use(undefined, (e) => {
+  if (e?.response?.status === 401 && getToken()) {
+    clearToken();
+    window.location.assign("/sign-in");
+  }
+  return Promise.reject(e);
 });
 
 export const publicApi = axios.create({ baseURL: `${BACKEND_URL}/api` });

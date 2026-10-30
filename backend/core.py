@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
+import bcrypt
 import jwt
 import requests
 from dotenv import load_dotenv
@@ -15,11 +16,6 @@ from starlette.concurrency import run_in_threadpool
 
 load_dotenv(Path(__file__).parent / ".env")
 
-try:
-    from backend.clerk_auth import require_user, verify_session_token
-except ModuleNotFoundError:
-    from clerk_auth import require_user, verify_session_token
-
 logging.basicConfig(level=logging.INFO, format='{"t":"%(asctime)s","lvl":"%(levelname)s","log":"%(name)s","msg":"%(message)s"}')
 log = logging.getLogger("cryptoconex")
 
@@ -28,7 +24,7 @@ db = client[os.environ["DB_NAME"]]
 
 DEVICE_JWT_SECRET = os.environ["DEVICE_JWT_SECRET"]
 DEVICE_TOKEN_TTL = 4 * 3600
-ENV = "live" if os.environ.get("CLERK_PUBLISHABLE_KEY", "").startswith("pk_live_") else "preview"
+USER_TOKEN_TTL = 12 * 3600
 ROLES = ["super_admin", "technician"]
 DEFAULT_PERMISSIONS = {"control": True, "privacy": True, "accessibility": True}
 
@@ -56,50 +52,37 @@ async def audit(actor: str, action: str, target: str = "", details: dict | None 
     log.info(f"audit actor={actor} action={action} target={target}")
 
 
-def _clerk_headers():
-    return {"Authorization": f"Bearer {os.environ['CLERK_SECRET_KEY']}", "User-Agent": "crypto-conex"}
-
-
-def _clerk_user(uid: str) -> dict:
-    r = requests.get(f"https://api.clerk.com/v1/users/{uid}", headers=_clerk_headers(), timeout=10)
-    r.raise_for_status()
-    return r.json()
-
-
-def clerk_set_password(uid: str, password: str):
-    r = requests.patch(f"https://api.clerk.com/v1/users/{uid}", headers=_clerk_headers(),
-                       json={"password": password}, timeout=10)
-    if r.status_code >= 400:
-        msg = (r.json().get("errors") or [{}])[0].get("long_message", "Palavra-passe inválida")
-        raise HTTPException(status_code=400, detail=msg)
-
-
 def _admin_emails() -> set:
     return {e.strip().lower() for e in os.environ.get("ADMIN_EMAIL", "").split(",") if e.strip()}
 
 
-async def resolve_member(uid: str) -> dict:
-    member = await db.users.find_one({"user_id": uid}, {"_id": 0})
-    if member is None:
-        cu = await run_in_threadpool(_clerk_user, uid)
-        verified = [e["email_address"].lower() for e in cu.get("email_addresses", [])
-                    if (e.get("verification") or {}).get("status") == "verified"]
-        name = " ".join(x for x in [cu.get("first_name"), cu.get("last_name")] if x) or (verified[0].split("@")[0] if verified else "Utilizador")
-        # Link by verified email: unlinked profiles, or ones linked in the other Clerk instance (preview <-> live).
-        profile = await db.users.find_one({"email": {"$in": verified}, "$or": [{"user_id": None}, {"env": {"$ne": ENV}}]},
-                                          {"_id": 0}) if verified else None
-        if profile:
-            await db.users.update_one({"id": profile["id"]}, {"$set": {"user_id": uid, "env": ENV, "linked_at": now_iso()}})
-            member = {**profile, "user_id": uid}
-            await audit(profile["email"], "conta.ligada", profile["id"])
-        elif set(verified) & _admin_emails():
-            member = {"id": new_id(), "user_id": uid, "email": verified[0], "name": name, "role": "super_admin",
-                      "active": True, "permissions": DEFAULT_PERMISSIONS, "env": ENV, "created_at": now_iso()}
-            await db.users.insert_one({**member})
-            member.pop("_id", None)
-            await audit(member["email"], "superadmin.criado", member["id"])
-        else:
-            raise HTTPException(status_code=403, detail="Conta não autorizada. Peça ao Super Admin para criar o seu perfil.")
+def hash_password(pw: str) -> str:
+    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
+
+
+def check_password(pw: str, hashed: str | None) -> bool:
+    try:
+        return bool(hashed) and bcrypt.checkpw(pw.encode(), hashed.encode())
+    except ValueError:
+        return False
+
+
+def create_user_token(member: dict) -> str:
+    exp = int(time.time()) + USER_TOKEN_TTL
+    return jwt.encode({"sub": member["id"], "typ": "user", "pwv": member.get("pw_version", 0), "exp": exp},
+                      DEVICE_JWT_SECRET, algorithm="HS256")
+
+
+async def member_from_token(token: str) -> dict:
+    try:
+        claims = jwt.decode(token, DEVICE_JWT_SECRET, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada. Entre novamente.")
+    if claims.get("typ") != "user":
+        raise HTTPException(status_code=401, detail="Sessão inválida")
+    member = await db.users.find_one({"id": claims["sub"]}, {"_id": 0})
+    if not member or claims.get("pwv") != member.get("pw_version", 0):
+        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada. Entre novamente.")
     if not member.get("active", True):
         raise HTTPException(status_code=403, detail="Conta desativada. Contacte o Super Admin.")
     if member.get("role") not in ROLES:
@@ -107,8 +90,27 @@ async def resolve_member(uid: str) -> dict:
     return member
 
 
-async def current_member(user: dict = Depends(require_user)) -> dict:
-    return await resolve_member(user["user_id"])
+async def current_member(request: Request) -> dict:
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Sem sessão iniciada")
+    return await member_from_token(auth[7:])
+
+
+async def seed_admins():
+    """Ensures each ADMIN_EMAIL has a super admin profile; sets ADMIN_PASSWORD only where no password exists yet."""
+    pw = os.environ.get("ADMIN_PASSWORD", "")
+    for email in _admin_emails():
+        u = await db.users.find_one({"email": email}, {"_id": 0})
+        if not u:
+            u = {"id": new_id(), "email": email, "name": email.split("@")[0], "role": "super_admin", "active": True,
+                 "permissions": DEFAULT_PERMISSIONS, "created_at": now_iso(), "pw_version": 0}
+            await db.users.insert_one({**u})
+            await audit("sistema", "superadmin.criado", u["id"])
+        upd = {"role": "super_admin", "active": True}
+        if not u.get("password_hash") and pw:
+            upd |= {"password_hash": hash_password(pw), "pw_version": u.get("pw_version", 0) + 1}
+        await db.users.update_one({"id": u["id"]}, {"$set": upd})
 
 
 async def require_super_admin(member: dict = Depends(current_member)) -> dict:
@@ -136,8 +138,7 @@ async def identify(token: str, kind: str) -> dict:
     """Returns {'kind','id','role','member'} for a WS/ICE caller."""
     if kind == "device":
         return {"kind": "device", "id": verify_device_token(token), "role": "device", "member": None}
-    claims = await run_in_threadpool(verify_session_token, token)
-    member = await resolve_member(claims["sub"])
+    member = await member_from_token(token)
     return {"kind": "user", "id": member["id"], "role": member["role"], "member": member}
 
 
