@@ -28,6 +28,10 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 4)
+- Corrigido ecrã preto (0 fps) no Android: MediaProjection só emite fotogramas quando o ecrã muda; ScreenShareService agora guarda cópia I420 do último fotograma e reenvia a cada 250 ms
+- Visualizador: ontrack com fallback de MediaStream + play() explícito
+
 ## Update 2026-10-30 (iteração 3)
 - Consola ao Vivo em /crm (3 colunas: aparelhos ligados com pré-visualização JPEG a cada 3 s + renomear inline, visualizador ao vivo com ecrã inteiro/zoom, painel Comandos/Acessib./Logs com grelha de navegação, coordenadas X,Y, texto e mensagem guiada); contadores no cabeçalho; sem fila de espera (um clique = POST /requests/{id}/start)
 - Modo de privacidade controlado só pelo técnico (ativar/desativar); cliente mantém só TERMINAR

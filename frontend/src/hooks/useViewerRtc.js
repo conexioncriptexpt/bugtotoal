@@ -22,7 +22,11 @@ export function useViewerRtc(rt, sessionId, enabled) {
       const pc = new RTCPeerConnection({ iceServers: await iceP });
       pcRef.current = pc;
       pc.ontrack = (e) => {
-        if (videoRef.current) videoRef.current.srcObject = e.streams[0];
+        const v = videoRef.current;
+        if (v) {
+          v.srcObject = e.streams[0] || new MediaStream([e.track]);
+          v.play().catch(() => {});
+        }
         setHasVideo(true);
       };
       pc.onicecandidate = (e) => e.candidate && emit("webrtc:ice-candidate", { candidate: e.candidate });

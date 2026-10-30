@@ -95,7 +95,9 @@ class ScreenShareService : Service() {
         })
         source = factory.createVideoSource(true)
         val helper = SurfaceTextureHelper.create("capture", egl.eglBaseContext)
-        capturer!!.initialize(helper, this, source!!.capturerObserver)
+        captureHandler = helper.handler
+        capturer!!.initialize(helper, this, repeatingObserver(source!!.capturerObserver))
+        captureHandler?.postDelayed(repeatTick, REPEAT_MS)
         val dm = DisplayMetrics()
         @Suppress("DEPRECATION") (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(dm)
         // Scale down to <=1280 on the long side; WebRTC adapts resolution/framerate to bandwidth (degradation = BALANCED).
@@ -106,6 +108,40 @@ class ScreenShareService : Service() {
     }
 
     private var lastThumb = 0L
+    private val REPEAT_MS = 250L
+    private var captureHandler: android.os.Handler? = null
+    @Volatile private var lastI420: VideoFrame.I420Buffer? = null
+    @Volatile private var lastFrameAt = 0L
+    private var downstream: CapturerObserver? = null
+
+    // MediaProjection only emits frames when the screen changes: keep a copy and re-send it so a static screen still streams.
+    private fun repeatingObserver(target: CapturerObserver): CapturerObserver {
+        downstream = target
+        return object : CapturerObserver {
+            override fun onCapturerStarted(ok: Boolean) = target.onCapturerStarted(ok)
+            override fun onCapturerStopped() = target.onCapturerStopped()
+            override fun onFrameCaptured(frame: VideoFrame) {
+                val copy = frame.buffer.toI420()
+                lastI420?.release(); lastI420 = copy
+                lastFrameAt = System.currentTimeMillis()
+                target.onFrameCaptured(frame)
+            }
+        }
+    }
+
+    private val repeatTick = object : Runnable {
+        override fun run() {
+            val buf = lastI420
+            if (buf != null && System.currentTimeMillis() - lastFrameAt >= REPEAT_MS) {
+                buf.retain()
+                val f = VideoFrame(buf, 0, System.nanoTime())
+                downstream?.onFrameCaptured(f)
+                f.release()
+                lastFrameAt = System.currentTimeMillis()
+            }
+            captureHandler?.postDelayed(this, REPEAT_MS)
+        }
+    }
 
     /** Every 3 s: small JPEG preview of the shared screen for the technician's device list. */
     private val thumbSink = VideoSink { frame ->
@@ -187,7 +223,9 @@ class ScreenShareService : Service() {
     fun endSession(notifyServer: Boolean) {
         if (notifyServer && sessionId != null) emit("session:end", JSONObject())
         AssistAccessibilityService.instance?.hidePrivacy()
+        captureHandler?.removeCallbacks(repeatTick); captureHandler = null
         runCatching { capturer?.stopCapture() }
+        lastI420?.release(); lastI420 = null
         pc?.close(); pc = null
         capturer?.dispose(); source?.dispose()
         signaling?.close(); signaling = null
