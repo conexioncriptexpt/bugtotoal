@@ -1,3 +1,4 @@
+import { SafetyNotice, LegalFooter } from "@/components/cc/Legal";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { MonitorUp, Download, ShieldCheck, PhoneOff, Volume2, VolumeX, Loader2, CheckCircle2, MessageCircle, Send } from "lucide-react";
@@ -62,7 +63,7 @@ export default function ConnectPage() {
   }, [token]);
 
   const downloadUrl = os.key === "android" ? cfg.android_download_url : cfg.windows_download_url;
-  const downloadLabel = os.key === "android" ? "Aplicação Android" : "Crypto Conex PC (Windows)";
+  const downloadLabel = os.key === "android" ? "Aplicação Android" : "Suporte Técnico Avançado (Windows)";
   const busy = ["picking", "registering", "waiting", "assigned", "active"].includes(s.phase);
 
   return (
@@ -73,10 +74,10 @@ export default function ConnectPage() {
         </button>
       </div>
       <main className="flex-1 flex flex-col items-center justify-center px-6 pb-12 text-center gap-6">
-        <img src="/emblem.png" alt="Crypto Conex" className="h-28 sm:h-36 cc-fade-up" data-testid="public-header-logo" />
+        <img src="/logo.png" alt="Suporte Técnico Avançado" className="h-28 sm:h-36 rounded-2xl cc-fade-up" data-testid="public-header-logo" />
         <div className="cc-fade-up" style={{ animationDelay: "80ms" }}>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight">Bem-vindo ao <span className="text-[#84CC16]">Crypto Conex</span></h1>
-          <p className="text-lg md:text-xl text-[#CBD5E1] mt-3">Vamos ajudar-te a resolver o teu problema</p>
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight">Bem-vindo ao <span className="text-[#84CC16]">Suporte Técnico Avançado</span></h1>
+          <p className="text-lg md:text-xl text-[#CBD5E1] mt-3">Assistência remota para o seu telemóvel ou computador, só com a sua autorização</p>
           {link?.valid && <p className="mt-3 text-sm text-[#A3E635] font-mono" data-testid="public-link-technician">Técnico: {link.technician_name}</p>}
           {link && !link.valid && <p className="mt-3 text-sm text-amber-300" data-testid="public-link-invalid">Este link expirou. Podes pedir ajuda na mesma.</p>}
         </div>
@@ -124,9 +125,11 @@ export default function ConnectPage() {
 
         <div className="flex items-start gap-3 max-w-md text-left bg-[#12141C] border border-[#222736] rounded-xl p-4" data-testid="public-privacy-note">
           <ShieldCheck className="text-[#84CC16] shrink-0" size={22} />
-          <p className="text-sm text-[#CBD5E1]">A tua privacidade é importante. A partilha do ecrã só começa depois da tua autorização.</p>
+          <p className="text-sm text-[#CBD5E1]">A tua privacidade é importante. A partilha do ecrã só começa depois da tua autorização. A imagem não é gravada.</p>
         </div>
+        <SafetyNotice />
       </main>
+      <LegalFooter />
       {s.privacy.on && <PrivacyOverlay onEnd={s.end} />}
     </div>
   );

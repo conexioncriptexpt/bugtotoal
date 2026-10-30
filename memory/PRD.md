@@ -28,6 +28,12 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 9)
+- Rebrand: "Crypto Conex" → "Suporte Técnico Avançado" (site, CRM, Android strings, Windows UI/instalador, título/meta); novo logótipo do utilizador (logo.png, emblem.png, favicon, ícones Android/Windows)
+- Avisos: aviso de segurança na página pública e nas apps (só com técnico que contactou; nunca pedimos palavras-passe/códigos/dinheiro), páginas /privacidade e /termos (RGPD, uso proibido, suspeita de fraude), rodapé legal com contacto
+- Ficheiros de download: SuporteTecnico.apk / SuporteTecnicoSetup.exe (workflow publica também os nomes antigos)
+- Compilação nativa local não verificada (ferramentas de build ausentes no ambiente) — confirmar no GitHub Actions
+
 ## Update 2026-10-30 (iteração 8)
 - Apps nativas apontavam para o servidor de testes (preview) → pedidos não apareciam no CRM publicado. URL padrão do Android (build.gradle.kts) e Windows (appsettings.json) passou a https://conex-assist-1.emergent.host (a variável CC_BACKEND_URL do GitHub continua a ter prioridade)
 

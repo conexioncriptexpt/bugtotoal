@@ -6,7 +6,7 @@ import { getToken, setToken } from "@/lib/auth";
 
 const Side = () => (
   <div className="hidden lg:flex flex-col justify-between w-[44%] p-12 border-r border-[#222736] bg-[#0E1017]">
-    <img src="/logo.png" alt="Crypto Conex — Assistência digital para todos" className="w-full max-w-md mx-auto rounded-2xl" />
+    <img src="/logo.png" alt="Suporte Técnico Avançado" className="w-full max-w-md mx-auto rounded-2xl" />
     <div>
       <h2 className="font-display text-2xl font-bold">Painel de gestão de assistência</h2>
       <p className="text-[#94A3B8] mt-2 text-sm max-w-sm">Acesso exclusivo a técnicos autorizados pelo Super Admin.</p>
@@ -70,7 +70,7 @@ export const SignInPage = () => {
     <div className="min-h-screen flex cc-grid-bg">
       <Side />
       <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
-        <img src="/emblem.png" alt="Crypto Conex" className="h-14 lg:hidden" />
+        <img src="/emblem.png" alt="Suporte Técnico Avançado" className="h-14 rounded-xl lg:hidden" />
         <LoginForm />
       </div>
     </div>

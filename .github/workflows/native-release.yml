@@ -33,9 +33,9 @@ jobs:
           CC_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           CC_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle assembleRelease --no-daemon -PCC_BACKEND_URL=${{ vars.CC_BACKEND_URL }}
-      - run: cp android/app/build/outputs/apk/release/app-release.apk CryptoConex.apk
+      - run: cp android/app/build/outputs/apk/release/app-release.apk SuporteTecnico.apk
       - uses: actions/upload-artifact@v4
-        with: { name: apk, path: CryptoConex.apk }
+        with: { name: apk, path: SuporteTecnico.apk }
 
   windows:
     runs-on: windows-latest
@@ -53,20 +53,24 @@ jobs:
           choco install innosetup -y --no-progress
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows/installer/CryptoConex.iss
       - uses: actions/upload-artifact@v4
-        with: { name: exe, path: windows/installer/Output/CryptoConexSetup.exe }
+        with: { name: exe, path: windows/installer/Output/SuporteTecnicoSetup.exe }
 
   release:
     needs: [android, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
+      - name: Legacy file names (old download links keep working)
+        run: cp apk/SuporteTecnico.apk apk/CryptoConex.apk && cp exe/SuporteTecnicoSetup.exe exe/CryptoConexSetup.exe
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
-          name: Crypto Conex v1.0.${{ github.run_number }}
+          name: Suporte Técnico Avançado v1.0.${{ github.run_number }}
           make_latest: "true"
           body: |
-            CryptoConex.apk — Android (8.0+). CryptoConexSetup.exe — Windows 10/11 (x64).
+            SuporteTecnico.apk — Android (8.0+). SuporteTecnicoSetup.exe — Windows 10/11 (x64).
           files: |
+            apk/SuporteTecnico.apk
+            exe/SuporteTecnicoSetup.exe
             apk/CryptoConex.apk
             exe/CryptoConexSetup.exe

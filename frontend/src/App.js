@@ -11,6 +11,7 @@ import Console from "@/pages/crm/Console";
 import Devices from "@/pages/crm/Devices";
 import Links from "@/pages/crm/Links";
 import SettingsPage from "@/pages/crm/Settings";
+import LegalPage from "@/pages/LegalPage";
 
 function App() {
   return (
@@ -18,6 +19,8 @@ function App() {
       <Routes>
         <Route path="/" element={<ConnectPage />} />
         <Route path="/assistir/:token" element={<ConnectPage />} />
+        <Route path="/privacidade" element={<LegalPage kind="privacy" />} />
+        <Route path="/termos" element={<LegalPage kind="terms" />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<Navigate to="/sign-in" replace />} />
         <Route path="/crm" element={<CrmLayout />}>

@@ -111,7 +111,7 @@ const Shell = () => {
         </header>
         <main className="flex-1 p-4 sm:p-8 cc-fade-up"><Outlet /></main>
         <footer className="px-8 py-4 border-t border-[#161925] text-[11px] text-[#475569] flex justify-between" data-testid="crm-footer">
-          <span>© Crypto Conex</span>
+          <span>© Suporte Técnico Avançado · Use apenas com autorização do utilizador</span>
           <span data-testid="crm-footer-credit">Criado por Victor Silva (Rafael Amorim)</span>
         </footer>
       </div>

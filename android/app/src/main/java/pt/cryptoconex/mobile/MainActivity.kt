@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         linkToken = intent?.data?.lastPathSegment
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(24), dp(24), dp(24), dp(24)) }
-        root.addView(ImageView(this).apply { setImageResource(R.drawable.logo); adjustViewBounds = true; contentDescription = "Crypto Conex" }, LinearLayout.LayoutParams(dp(220), dp(220)))
+        root.addView(ImageView(this).apply { setImageResource(R.drawable.logo); adjustViewBounds = true; contentDescription = "Suporte Técnico Avançado" }, LinearLayout.LayoutParams(dp(300), LinearLayout.LayoutParams.WRAP_CONTENT))
         status = TextView(this).apply { textSize = 22f; gravity = Gravity.CENTER; setText(R.string.status_idle); setPadding(0, dp(24), 0, dp(24)) }
         root.addView(status)
         connectBtn = Button(this).apply {

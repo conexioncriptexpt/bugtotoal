@@ -21,7 +21,7 @@ public sealed class MainForm : Form
     readonly Label _status = new() { AutoSize = false, Height = 60, Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleCenter, ForeColor = Color.White, Font = new Font("Segoe UI", 14) };
     readonly Button _connect = new() { Text = "CONECTAR", Height = 90, Dock = DockStyle.Top, BackColor = Color.FromArgb(132, 204, 22), Font = new Font("Segoe UI", 26, FontStyle.Bold), FlatStyle = FlatStyle.Flat, AccessibleName = "Conectar ao técnico" };
     readonly Button _end = new() { Text = "TERMINAR ASSISTÊNCIA", Height = 70, Dock = DockStyle.Top, BackColor = Color.FromArgb(220, 38, 38), ForeColor = Color.White, Font = new Font("Segoe UI", 16, FontStyle.Bold), FlatStyle = FlatStyle.Flat, Visible = false };
-    readonly NotifyIcon _tray = new() { Text = "Crypto Conex", Visible = true };
+    readonly NotifyIcon _tray = new() { Text = "Suporte Técnico Avançado", Visible = true };
     readonly string? _link;
     SignalingClient? _sig;
     WebRtcSession? _rtc;
@@ -34,12 +34,12 @@ public sealed class MainForm : Form
     public MainForm(string? link)
     {
         _link = link;
-        Text = "Crypto Conex PC"; BackColor = Color.FromArgb(10, 11, 14); Size = new Size(480, 620); StartPosition = FormStartPosition.CenterScreen;
+        Text = "Suporte Técnico Avançado"; BackColor = Color.FromArgb(10, 11, 14); Size = new Size(480, 620); StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle; MaximizeBox = false;
         var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
         if (File.Exists(iconPath)) { Icon = new Icon(iconPath); _tray.Icon = Icon; }
         var logo = new PictureBox { Dock = DockStyle.Top, Height = 240, SizeMode = PictureBoxSizeMode.Zoom, ImageLocation = Path.Combine(AppContext.BaseDirectory, "Assets", "logo.png") };
-        var note = new Label { Text = "A tua privacidade é importante. A partilha do ecrã só começa depois da tua autorização.", Dock = DockStyle.Bottom, Height = 60, ForeColor = Color.FromArgb(148, 163, 184), TextAlign = ContentAlignment.MiddleCenter };
+        var note = new Label { Text = "Só partilhe o ecrã com um técnico que você contactou. Nunca pedimos palavras-passe, códigos bancários ou dinheiro. A partilha só começa com a sua autorização.", Dock = DockStyle.Bottom, Height = 80, ForeColor = Color.FromArgb(148, 163, 184), TextAlign = ContentAlignment.MiddleCenter };
         Padding = new Padding(24);
         Controls.Add(_end); Controls.Add(new Panel { Height = 12, Dock = DockStyle.Top }); Controls.Add(_connect); Controls.Add(_status); Controls.Add(logo); Controls.Add(note);
         SetStatus("Carrega em CONECTAR para pedir ajuda");
@@ -55,7 +55,7 @@ public sealed class MainForm : Form
 
     void Ui(Action a) { if (InvokeRequired) BeginInvoke(a); else a(); }
     void SetStatus(string s) => Ui(() => _status.Text = s);
-    void Notify(string s) => Ui(() => _tray.ShowBalloonTip(4000, "Crypto Conex", s, ToolTipIcon.Info));
+    void Notify(string s) => Ui(() => _tray.ShowBalloonTip(4000, "Suporte Técnico Avançado", s, ToolTipIcon.Info));
     Task Emit(string ev, JsonObject d) { if (_sessionId != null) d["session_id"] = _sessionId; return _sig?.Emit(ev, d) ?? Task.CompletedTask; }
 
     async Task Connect()

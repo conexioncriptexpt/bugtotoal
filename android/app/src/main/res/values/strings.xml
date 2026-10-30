@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Crypto Conex</string>
-    <string name="a11y_label">Crypto Conex — Assistência</string>
-    <string name="a11y_description">Permite que o técnico do Crypto Conex leia os textos e botões do ecrã e toque por si, apenas durante uma sessão de assistência que autorizou. Pode desligar a qualquer momento. Campos de palavra-passe nunca são lidos nem preenchidos.</string>
+    <string name="app_name">Suporte Técnico Avançado</string>
+    <string name="a11y_label">Suporte Técnico Avançado — Assistência</string>
+    <string name="a11y_description">Permite que o técnico do Suporte Técnico Avançado leia os textos e botões do ecrã e toque por si, apenas durante uma sessão de assistência que autorizou. Pode desligar a qualquer momento. Campos de palavra-passe nunca são lidos nem preenchidos.</string>
     <string name="connect">CONECTAR</string>
     <string name="end">TERMINAR ASSISTÊNCIA</string>
     <string name="status_idle">Carrega em CONECTAR para pedir ajuda</string>
@@ -20,7 +20,7 @@
     <string name="privacy_msg">Ajuste Técnico — Aguarde...</string>
     <string name="privacy_disable">DESLIGAR MODO</string>
     <string name="a11y_setup_title">Ajuda por toque (opcional)</string>
-    <string name="a11y_setup_msg">Para o técnico poder tocar no ecrã por ti, ativa “Crypto Conex — Assistência” nas Definições de Acessibilidade. Só funciona durante uma assistência que autorizaste.</string>
+    <string name="a11y_setup_msg">Para o técnico poder tocar no ecrã por ti, ativa “Suporte Técnico Avançado — Assistência” nas Definições de Acessibilidade. Só funciona durante uma assistência que autorizaste.</string>
     <string name="a11y_open_settings">ABRIR DEFINIÇÕES</string>
-    <string name="privacy_note">A tua privacidade é importante. A partilha do ecrã só começa depois da tua autorização.</string>
+    <string name="privacy_note">Só partilhe o ecrã com um técnico que você contactou. Nunca pedimos palavras-passe, códigos bancários ou dinheiro. A partilha só começa com a sua autorização.</string>
 </resources>

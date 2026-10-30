@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 
 export const Emblem = ({ className = "h-10", testId }) => (
-  <img src="/emblem.png" alt="Crypto Conex" className={`${className} w-auto object-contain`} data-testid={testId} />
+  <img src="/emblem.png" alt="Suporte Técnico Avançado" className={`${className} w-auto rounded-xl object-contain`} data-testid={testId} />
 );
 
 export const Wordmark = ({ compact = false }) => (
   <div className="flex items-center gap-3">
-    <img src="/emblem.png" alt="" aria-hidden className={compact ? "h-8" : "h-10"} />
+    <img src="/emblem.png" alt="" aria-hidden className={`${compact ? "h-8" : "h-10"} rounded-lg`} />
     <div className="leading-none">
-      <div className="font-display font-black tracking-tight text-white text-lg">CRYPTO</div>
-      <div className="font-display font-black tracking-tight text-[#84CC16] text-lg -mt-0.5">CONEX</div>
+      <div className="font-display font-black tracking-tight text-white text-base">SUPORTE TÉCNICO</div>
+      <div className="font-display font-black tracking-tight text-[#84CC16] text-base -mt-0.5">AVANÇADO</div>
     </div>
   </div>
 );
