@@ -22,7 +22,7 @@ export const PasswordGenerator = () => {
         <button type="button" onClick={() => setPw(generate())} className="cc-btn-ghost px-2 rounded-lg" aria-label="Gerar outra" data-testid="password-generator-refresh"><RefreshCw size={14} /></button>
         <button type="button" onClick={copy} className="cc-btn-lime px-2 rounded-lg" aria-label="Copiar" data-testid="password-generator-copy"><Copy size={14} /></button>
       </div>
-      <p className="text-[11px] text-[#64748B] mt-2">Gerada só no seu navegador (24 caracteres). Ninguém mais a vê. Guarde-a antes de criar a conta.</p>
+      <p className="text-[11px] text-[#64748B] mt-2">Gerada só no seu navegador (24 caracteres). Ninguém mais a vê. Copie-a e guarde-a num local seguro antes de a usar.</p>
     </div>
   );
 };

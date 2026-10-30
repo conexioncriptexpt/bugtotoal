@@ -210,18 +210,19 @@ LOCK_AFTER, LOCK_SECONDS = 5, 15 * 60
 async def login(body: LoginIn, request: Request):
     rate_limit(f"login:{client_ip(request)}", 20)
     email = body.email.lower()
-    count, since = _fails.get(email, (0, 0.0))
+    key = f"{email}|{client_ip(request)}"
+    count, since = _fails.get(key, (0, 0.0))
     if count and time.time() - since >= LOCK_SECONDS:
         count, since = 0, 0.0
     if count >= LOCK_AFTER:
         raise HTTPException(status_code=429, detail="Demasiadas tentativas falhadas. Aguarde 15 minutos.")
     u = await db.users.find_one({"email": email}, NO_ID)
     if not u or not check_password(body.password, u.get("password_hash")):
-        _fails[email] = (count + 1, since or time.time())
+        _fails[key] = (count + 1, since or time.time())
         raise HTTPException(status_code=401, detail="Email ou palavra-passe incorretos")
     if not u.get("active", True):
         raise HTTPException(status_code=403, detail="Conta desativada. Contacte o Super Admin.")
-    _fails.pop(email, None)
+    _fails.pop(key, None)
     await db.users.update_one({"id": u["id"]}, {"$set": {"last_login_at": now_iso()}})
     await audit(email, "sessao.iniciada", u["id"])
     return {"token": create_user_token(u), "user": public_user(u)}

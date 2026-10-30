@@ -1,0 +1,40 @@
+{
+  "summary": "Tested the new own email+password JWT auth (Clerk removed). Backend: 16/16 pytest pass (login ok/401/422, case-insensitive email, /me 200/401, 5-fail lockout -> 429 on 6th even with correct pw, change-password 400/422/401/success + old token invalidated via pw_version + new pw login, technician create w/ password, tech 403 on admin routes, admin reset tech pw invalidates old token, deactivated tech -> 403 on login and /me, WS /api/ws accepts JWT). Frontend: /crm w/o token -> /sign-in, /sign-up -> /sign-in, custom login form (toggle, error 'Email ou palavra-passe incorretos', success -> /crm, refresh keeps session, 'TEMPO REAL ATIVO'), all nav pages load, A minha conta (mismatch msg, submit disabled <10 chars, wrong current toast, success toast, stays logged in), signout clears token -> /sign-in, Configurações shows 'Com palavra-passe', new technician dialog with password, key button enabled for all rows and sets password (tech login with new pw = 200). Admin password changed and RESTORED (verified login 200). All TEST_ technicians deleted.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/auth/login", "issue": "Lockout keyed only by email (in-memory _fails): any anonymous user can lock the single admin out for 15 min with 5 wrong attempts (DoS). Consider keying by email+IP or adding a progressive delay instead of hard lock for the owner account."},
+      {"endpoint": "POST /api/auth/login", "issue": "_fails dict grows unbounded with unknown emails; unknown-email path skips bcrypt (timing-based user enumeration). Low priority."},
+      {"endpoint": "POST /api/auth/change-password", "issue": "Does not reject new_password == current_password. Low priority."},
+      {"endpoint": "WS /api/ws", "issue": "Already-open WS connections are not closed when pw_version changes / tech is deactivated (token only validated at connect). Low priority."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Settings technicians table", "issue": "Key button on admin's own row resets own password via /technicians/{id}/password, which invalidates the admin's current token -> 401 interceptor logs out without warning. Consider hiding it for self or redirecting to /crm/conta.", "selector": "[data-testid=tech-password-{adminId}]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "A minha conta - PasswordGenerator", "issues": ["Helper text 'Guarde-a antes de criar a conta' is leftover Clerk sign-up wording; reword for password change context"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_auth_jwt.py", "/app/backend/tests/cleanup_test_techs.py", "/app/test_reports/pytest/pytest_auth_jwt.xml"],
+  "action_items": [
+    "Update /app/memory/test_credentials.md: it still describes Clerk and does NOT list the admin password (tests read ADMIN_PASSWORD from backend/.env). Remove obsolete Clerk test accounts/helpers info.",
+    "Remove/replace obsolete Clerk-based tests: tests/conftest.py (clerk_jwt), clerk_tickets.py, clerk_noprofile_user.py, test_crypto_conex_api.py, test_console_iter2.py",
+    "Consider mitigating admin lockout DoS (email+IP key)",
+    "Optional: hide self key button in Settings; fix PasswordGenerator wording"
+  ],
+  "critical_code_review_comments": [
+    "Lockout by email only enables DoS of the single admin account",
+    "client_ip uses last X-Forwarded-For entry; all traffic via ingress may share one IP -> 20 logins/min global limit (fine for small team)",
+    "server.py 671 lines - close to the 700 split threshold"
+  ],
+  "updated_files": ["/app/backend/tests/test_auth_jwt.py", "/app/backend/tests/cleanup_test_techs.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin garciafinancas0073040@proton.me; password = ADMIN_PASSWORD in backend/.env (NOT documented in test_credentials.md). Restored to original after tests.",
+  "seed_data_creation": "Created TEST_ technicians (test_tech_*, test_ui_*@cryptoconex.pt) and deleted all of them.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend/tests && pytest test_auth_jwt.py -n 0 (MUST be serial: pytest.ini enables xdist and the change-password test invalidates the shared admin token). Then python cleanup_test_techs.py. Brute-force test uses a TEST tech email, never the admin. IP rate limit on login is 20/min; helper login() waits on 429 'pedidos'."
+}

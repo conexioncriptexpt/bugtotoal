@@ -28,6 +28,12 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 7)
+- Clerk removido. Login próprio: email + palavra-passe (bcrypt, JWT HS256 com pw_version), /api/auth/login, /api/auth/change-password
+- Super Admin único semeado no arranque a partir de ADMIN_EMAIL + ADMIN_PASSWORD (só define senha se ainda não existir)
+- Página "A minha conta" (/crm/conta) para alterar palavra-passe; técnicos criados com palavra-passe pelo admin; bloqueio após 5 tentativas (email+IP, 15 min)
+- Testing iteration_3: backend 100%, frontend 100%
+
 ## Update 2026-10-30 (iteração 6)
 - Corrigido 500 em /api/me na produção: perfil migrado do preview tinha user_id do Clerk de teste; resolve_member agora religa pelo e-mail verificado quando o perfil está por ligar ou foi ligado noutra instância (env diferente)
 

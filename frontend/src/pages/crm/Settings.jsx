@@ -134,7 +134,7 @@ const TechsTab = () => {
                 <td><div className="flex gap-1 justify-end">
                   <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setAct(t)} aria-label="Atividade" data-testid={`tech-activity-${t.id}`}><Activity size={14} /></button>
                   <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setEdit(t)} aria-label="Editar" data-testid={`tech-edit-${t.id}`}><Pencil size={14} /></button>
-                  <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setPw(t)} aria-label="Palavra-passe" data-testid={`tech-password-${t.id}`}><KeyRound size={14} /></button>
+                  {t.id !== member.id && <button className="cc-btn-ghost p-2 rounded-lg" onClick={() => setPw(t)} aria-label="Palavra-passe" data-testid={`tech-password-${t.id}`}><KeyRound size={14} /></button>}
                   {t.id !== member.id && <button className="p-2 rounded-lg border-2 border-red-600/40 text-red-300 hover:bg-red-600/20" onClick={() => setDel(t)} aria-label="Eliminar" data-testid={`tech-delete-${t.id}`}><Trash2 size={14} /></button>}
                 </div></td>
               </tr>
