@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cc_bg">#0A0B0E</color>
+    <color name="cc_card">#12141C</color>
+    <color name="cc_lime">#84CC16</color>
+    <color name="cc_text">#FFFFFF</color>
+    <color name="cc_muted">#94A3B8</color>
+    <color name="cc_red">#DC2626</color>
+
+    <style name="Theme.CryptoConex" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/cc_bg</item>
+        <item name="android:statusBarColor">@color/cc_bg</item>
+        <item name="android:navigationBarColor">@color/cc_bg</item>
+        <item name="colorPrimary">@color/cc_lime</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="android:textColor">@color/cc_text</item>
+    </style>
+
+    <style name="Theme.CryptoConex.Splash">
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
+</resources>

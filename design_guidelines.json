@@ -1,0 +1,131 @@
+{
+  "project_title": "Crypto Conex — Plataforma de Assistência Digital Remota (pt-PT)",
+  "app_type": "CRM Dashboard + Public Accessibility Landing Page",
+  "language": "pt-PT (Português de Portugal)",
+  "logos": {
+    "full": "/logo.png",
+    "emblem": "/emblem.png"
+  },
+  "footer": {
+    "credit_text": "Criado por Victor Silva (Rafael Amorim)"
+  },
+  "typography": {
+    "font_family_heading": "Outfit, sans-serif",
+    "font_family_body": "Inter, sans-serif",
+    "font_family_mono": "JetBrains Mono, monospace",
+    "scale": {
+      "hero_title": "text-4xl sm:text-5xl font-extrabold tracking-tight",
+      "section_heading": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "card_heading": "text-lg font-semibold",
+      "accessibility_primary_btn": "text-2xl font-black tracking-wide uppercase",
+      "body": "text-base font-normal leading-relaxed",
+      "caption": "text-xs font-mono tracking-wider uppercase"
+    }
+  },
+  "colors": {
+    "background_main": "#0A0B0E",
+    "background_card": "#12141C",
+    "background_card_hover": "#1A1D28",
+    "background_sidebar": "#0E1017",
+    "border_subtle": "#222736",
+    "border_accent": "#84CC16",
+    "brand_lime": "#84CC16",
+    "brand_lime_glow": "#A3E635",
+    "brand_lime_bg": "rgba(132, 204, 22, 0.12)",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#94A3B8",
+    "text_muted": "#64748B",
+    "status": {
+      "online_green": "#22C55E",
+      "warning_amber": "#F59E0B",
+      "busy_red": "#EF4444",
+      "info_blue": "#3B82F6"
+    }
+  },
+  "visual_enhancers": {
+    "card_style": "bg-[#12141C] border border-[#222736] rounded-xl p-5 shadow-lg shadow-black/40",
+    "active_glow": "shadow-[0_0_20px_rgba(132,204,22,0.25)] border-[#84CC16]",
+    "button_primary_lime": "bg-[#84CC16] hover:bg-[#A3E635] text-black font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-[0_0_15px_rgba(132,204,22,0.3)] hover:scale-[1.02] active:scale-[0.98]",
+    "button_accessibility_large": "w-full max-w-md bg-[#84CC16] hover:bg-[#A3E635] text-black text-2xl font-black py-6 px-10 rounded-2xl shadow-[0_0_25px_rgba(132,204,22,0.4)] transition-transform active:scale-95 cursor-pointer flex items-center justify-center gap-3",
+    "button_secondary_outline": "bg-transparent hover:bg-[#1A1D28] text-white border-2 border-[#222736] hover:border-[#84CC16] font-semibold py-4 px-6 rounded-xl transition-all"
+  },
+  "lisbon_clock_spec": {
+    "timezone": "Europe/Lisbon",
+    "label": "Hora de Lisboa",
+    "format": "HH:mm:ss",
+    "badge_style": "inline-flex items-center gap-2 bg-[#1A1D28] border border-[#222736] px-3 py-1.5 rounded-lg text-xs font-mono text-[#A3E635]"
+  },
+  "layout_public_connect": {
+    "target_audience": "Pessoas com baixa literacia digital / limitações motoras",
+    "design_principles": "Botões muito grandes, contraste ultra elevado, zero desordem, linguagem clara e direta em Português de Portugal",
+    "components": [
+      "Header com /logo.png (ou /emblem.png em ecrãs pequenos)",
+      "Título principal: 'Bem-vindo ao Crypto Conex'",
+      "Subtítulo de apoio: 'Vamos ajudar-te a resolver o teu problema'",
+      "Botão Principal Gigante (min-height: 72px): 'CONECTAR' com ícone de ligação verde-limão",
+      "Botão Secundário Gigante: 'DESCARREGAR APLICAÇÃO'",
+      "Caixa de Nota de Privacidade em Destaque ('Nota de privacidade: A tua sessão é 100% segura e encriptada')",
+      "Estado da Conexão em tempo real (A aguardar técnico / Conectado)"
+    ]
+  },
+  "layout_crm": {
+    "sidebar_navigation": [
+      "Dashboard (Visão Geral & KPI)",
+      "Fila de Pedidos (Realtime Queue)",
+      "Atendimentos / Sessões (Active & Past Sessions)",
+      "Ecrã Remoto (WebRTC Viewer with Zoom, Side Panel & Privacy Mode)",
+      "Dispositivos (Device Catalog with Search/Filter)",
+      "Links Individuais (Individual Support Link Generator)",
+      "Configurações / Técnicos (Technicians CRUD)"
+    ],
+    "header_bar": [
+      "Relógio Digital de Lisboa (Europe/Lisbon)",
+      "Indicador de Estado do Técnico (Online/Ocupado)",
+      "Pesquisa Global / Notificações em Tempo Real",
+      "Perfil do Utilizador / Terminar Sessão"
+    ],
+    "footer": "Criado por Victor Silva (Rafael Amorim)"
+  },
+  "data_testid_conventions": {
+    "public_page": {
+      "connect_button": "public-connect-button",
+      "download_button": "public-download-app-button",
+      "privacy_note": "public-privacy-note",
+      "header_logo": "public-header-logo"
+    },
+    "crm": {
+      "login_email": "login-email-input",
+      "login_password": "login-password-input",
+      "login_submit": "login-submit-button",
+      "lisbon_clock": "lisbon-digital-clock",
+      "remote_viewer": "remote-screen-viewer",
+      "privacy_mode_toggle": "remote-privacy-mode-toggle",
+      "zoom_in_button": "remote-zoom-in-button",
+      "zoom_out_button": "remote-zoom-out-button",
+      "technician_crud_add": "technicians-add-button",
+      "support_link_create": "support-link-create-button",
+      "devices_search": "devices-search-input"
+    }
+  },
+  "image_urls": [
+    {
+      "category": "support_tech",
+      "url": "https://images.unsplash.com/photo-1724260793422-7754e5d06fbe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwzfHxyZW1vdGUlMjB0ZWNoJTIwc3VwcG9ydCUyMGNvbXB1dGVyJTIwaGVscCUyMGRlc2t8ZW58MHx8fHwxNzkzMzU3NDU0fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Técnico de apoio remoto a trabalhar no computador"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "Usar sempre Javascript (.js / .jsx) em vez de Typescript (.tsx).",
+    "Garantir que todas as vertentes da interface estejam em Português de Portugal (pt-PT).",
+    "Implementar o relógio digital de Lisboa no cabeçalho do CRM com atualização contínua em tempo real.",
+    "No ecrã remoto WebRTC, incluir botão 'Modo de Privacidade' (muda ecrã para escurecido com badge de privacidade), controlos de zoom e painel lateral com dados do cliente.",
+    "Na página pública Connect, garantir acessibilidade total: botões de grande dimensão, foco visual claro e texto simples.",
+    "Assegurar que o rodapé tem a menção exata: 'Criado por Victor Silva (Rafael Amorim)'.",
+    "Adicionar data-testid em todos os botões, inputs, tabelas e módulos principais."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": {
+    "anti_slop": "Evitar layouts genéricos brancos ou azuis de SaaS corporativo. Usar paleta cinzento-escuro com destaque verde-limão vibrante (#84CC16).",
+    "contrast": "Manter contraste WCAG AA elevado, em especial nos botões grandes da página pública.",
+    "testids": "Todos os elementos interativos DEVEM incluir data-testid no padrão kebab-case."
+  }
+}

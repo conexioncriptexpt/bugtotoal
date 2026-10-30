@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background: #0A0B0E;
+    color: #fff;
+}
+
+h1, h2, h3, h4, .font-display { font-family: "Outfit", sans-serif; }
+.font-mono, code { font-family: "JetBrains Mono", monospace; }
+
+::selection { background: #84CC16; color: #000; }
+
+@layer base {
+    :root {
+        --background: 228 17% 4%;
+        --foreground: 0 0% 100%;
+        --card: 228 22% 9%;
+        --card-foreground: 0 0% 100%;
+        --popover: 228 22% 9%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 84 81% 44%;
+        --primary-foreground: 0 0% 0%;
+        --secondary: 228 21% 13%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 228 21% 13%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 228 21% 13%;
+        --accent-foreground: 0 0% 100%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 225 22% 17%;
+        --input: 225 22% 17%;
+        --ring: 84 81% 44%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] { display: contents !important; }
+    [data-debug-wrapper="true"] > * {
+        margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+        padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+        column-gap: inherit; row-gap: inherit; gap: inherit;
+        border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+        border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+        border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+    }
+}

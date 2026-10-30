@@ -1,0 +1,50 @@
+name: native-release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: gradle/actions/setup-gradle@v3
+        with: { gradle-version: "8.7" }
+      - run: gradle assembleDebug -PCC_BACKEND_URL=${{ vars.CC_BACKEND_URL }}
+        working-directory: android
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk CryptoConex.apk
+      - uses: actions/upload-artifact@v4
+        with: { name: apk, path: CryptoConex.apk }
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: "8.0.x" }
+      - shell: pwsh
+        run: |
+          $cfg = @{ BackendUrl = "${{ vars.CC_BACKEND_URL }}" } | ConvertTo-Json
+          Set-Content windows/CryptoConex/appsettings.json $cfg
+          dotnet publish windows/CryptoConex -c Release
+          choco install innosetup -y
+          iscc windows/installer/CryptoConex.iss
+      - uses: actions/upload-artifact@v4
+        with: { name: exe, path: windows/installer/Output/CryptoConexSetup.exe }
+
+  release:
+    needs: [android, windows]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            apk/CryptoConex.apk
+            exe/CryptoConexSetup.exe
