@@ -14,7 +14,7 @@ android {
         versionCode = 1
         versionName = "1.0.0"
         val backend = (project.findProperty("CC_BACKEND_URL") as String?)?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
-            ?: "https://conex-assist-1--3cd6kodu.preview.emergentagent.com"
+            ?: "https://conex-assist-1.emergent.host"
         buildConfigField("String", "BACKEND_URL", "\"$backend\"")
     }
 

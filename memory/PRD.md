@@ -28,6 +28,9 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 8)
+- Apps nativas apontavam para o servidor de testes (preview) → pedidos não apareciam no CRM publicado. URL padrão do Android (build.gradle.kts) e Windows (appsettings.json) passou a https://conex-assist-1.emergent.host (a variável CC_BACKEND_URL do GitHub continua a ter prioridade)
+
 ## Update 2026-10-30 (iteração 7)
 - Clerk removido. Login próprio: email + palavra-passe (bcrypt, JWT HS256 com pw_version), /api/auth/login, /api/auth/change-password
 - Super Admin único semeado no arranque a partir de ADMIN_EMAIL + ADMIN_PASSWORD (só define senha se ainda não existir)
