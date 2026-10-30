@@ -28,6 +28,15 @@ Super Admin (gestão global), Técnico (atende sessões atribuídas), Cliente as
 ## Next tasks
 - Owner regista-se em /sign-up com o email admin; criar técnicos reais
 
+## Update 2026-10-30 (iteração 3)
+- Consola ao Vivo em /crm (3 colunas: aparelhos ligados com pré-visualização JPEG a cada 3 s + renomear inline, visualizador ao vivo com ecrã inteiro/zoom, painel Comandos/Acessib./Logs com grelha de navegação, coordenadas X,Y, texto e mensagem guiada); contadores no cabeçalho; sem fila de espera (um clique = POST /requests/{id}/start)
+- Modo de privacidade controlado só pelo técnico (ativar/desativar); cliente mantém só TERMINAR
+- Windows: removido o banner sobre o ecrã; DPI PerMonitorV2 (coordenadas corretas); pré-visualização; overlay sem botão de desligar
+- Android: coordenadas com tamanho real do ecrã, swipe horizontal, duplo toque, pré-visualização via VideoSink; limitação: o overlay de privacidade é capturado pelo MediaProjection (sem API pública para o excluir)
+- Clique no vídeo mapeado ao conteúdo real (letterbox/zoom)
+- Corrigida condição de corrida (pedido reclamado de forma atómica → 409)
+- Testing iteration_2: backend 32/33 → corrigido; frontend 100%
+
 ## Update 2026-10-30 (iteração 2)
 - Apps nativas compiladas com sucesso neste ambiente: Android `assembleRelease` (APK 48 MB) e Windows `dotnet publish` (exe self-contained); corrigido erro de tipos em DesktopDuplicator.cs
 - Workflow GitHub `native-release.yml`: em cada push (android/, windows/) ou manual → APK + instalador Inno Setup → GitHub Release "latest" com CryptoConex.apk / CryptoConexSetup.exe

@@ -6,7 +6,6 @@ import ConnectPage from "@/pages/ConnectPage";
 import { SignInPage, SignUpPage } from "@/pages/AuthPages";
 import CrmLayout from "@/components/cc/CrmLayout";
 import Dashboard from "@/pages/crm/Dashboard";
-import Queue from "@/pages/crm/Queue";
 import Sessions from "@/pages/crm/Sessions";
 import Console from "@/pages/crm/Console";
 import Devices from "@/pages/crm/Devices";
@@ -29,7 +28,6 @@ function App() {
           <Route path="/crm" element={<CrmLayout />}>
             <Route index element={<Console />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="fila" element={<Queue />} />
             <Route path="atendimentos" element={<Sessions />} />
             <Route path="atendimentos/:id" element={<Console />} />
             <Route path="dispositivos" element={<Devices />} />

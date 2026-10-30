@@ -39,7 +39,7 @@ export default function Dashboard() {
         <section className="cc-card p-5 lg:col-span-3" data-testid="dashboard-live-queue">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-lg font-semibold flex items-center gap-2"><span className="cc-dot" style={{ background: "#84CC16", boxShadow: "0 0 8px #84CC16" }} /> Fila em tempo real</h2>
-            <Link to="/crm/fila" className="text-xs font-mono text-[#84CC16] hover:underline" data-testid="dashboard-open-queue">VER FILA →</Link>
+            <Link to="/crm" className="text-xs font-mono text-[#84CC16] hover:underline" data-testid="dashboard-open-queue">ABRIR CONSOLA →</Link>
           </div>
           {!queue?.length ? <Empty testId="dashboard-queue-empty">Sem pedidos pendentes. Os novos pedidos aparecem aqui de imediato.</Empty> : (
             <ul className="divide-y divide-[#1A1E2B]">

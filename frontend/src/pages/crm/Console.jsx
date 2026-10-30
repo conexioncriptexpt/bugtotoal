@@ -215,7 +215,7 @@ export default function Console() {
   const [zoom, setZoom] = useState(1);
   const [tree, setTree] = useState(null);
   const [messages, setMessages] = useState([]);
-  const load = () => (id ? api.get(`/sessions/${id}`).then(({ data }) => setS(data)).catch((e) => { toast.error(errMsg(e)); nav("/crm"); }) : setS(null));
+  const load = () => (id ? api.get(`/sessions/${id}`).then(({ data }) => setS(data)).catch((e) => { toast.error(errMsg(e), { id: "console-load" }); nav("/crm"); }) : setS(null));
   useEffect(() => { load(); setMessages([]); setTree(null); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const mine = s && s.technician_id === member.id;
   const live = s?.status === "active" && mine;

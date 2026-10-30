@@ -257,6 +257,9 @@ async def list_requests(status: str = "pending", member: dict = Depends(current_
 
 
 async def _create_session(req: dict, tech: dict, actor: dict) -> dict:
+    claimed = await db.support_requests.find_one_and_update({"id": req["id"], "status": "pending"}, {"$set": {"status": "assigned"}})
+    if not claimed:
+        raise HTTPException(status_code=409, detail="Este pedido já está a ser atendido")
     s = {"id": new_id(), "request_id": req["id"], "device_id": req["device_id"], "device_name": req.get("device_name"),
          "platform": req.get("platform"), "client_name": req.get("client_name"),
          "technician_id": tech["id"], "technician_name": tech["name"], "status": "assigned",

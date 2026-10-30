@@ -249,9 +249,9 @@ class TestWebSocket:
                 await tw1.send(json.dumps({"event": "privacy:enable", "data": {"session_id": sid}}))
                 await _recv_until(dev, "privacy:enabled")
                 await tw1.send(json.dumps({"event": "privacy:disable", "data": {"session_id": sid}}))
-                await _recv_until(dev, "privacy:disable-requested")
+                await _recv_until(dev, "privacy:disabled")  # iteration 2: technician-only privacy control
                 await dev.send(json.dumps({"event": "privacy:disable", "data": {"session_id": sid}}))
-                await _recv_until(tw1, "privacy:disabled")
+                assert (await _recv_until(dev, "error"))["event"] == "privacy:disable"
                 # chat both ways
                 await tw1.send(json.dumps({"event": "chat:message", "data": {"session_id": sid, "text": "TEST_ola"}}))
                 assert (await _recv_until(dev, "chat:message"))["text"] == "TEST_ola"

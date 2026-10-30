@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 2 tested the new Live Console end to end. Backend: a new file test_console_iter2.py with 7 tests (thumbnail WS relay and REST scope, invalid or oversized thumbnail ignored, thumbnail dropped when the device goes offline, inline rename scope, one-click /requests/{id}/start with isolation, a simulated android device with consent gating and relay of every command type, technician-only privacy). All 7 pass. I also updated the old regression suite for the new privacy flow; 26/26 pass when run with -n 0. A concurrency probe found 1 real bug: concurrent start/take calls create duplicate sessions. Frontend, verified with Playwright: /crm is the console (rail, viewer and control panel all exist); the Fila nav item is gone; the header counters update live (NOVOS 1 on connect, ATIVAS 1 on start, 0 after end); web client CONECTAR -> the card appears immediately -> a JPEG thumbnail (data:image/jpeg) arrives and refreshes every 3s; inline rename from the rail works for admin and for tech1 on its own link request; one click goes to /crm/atendimentos/<sid> with no accept button, the WebRTC video is connected (1280x720) and the client shows 'Assistência ativa'; zoom 125/75/200%; fullscreen calls requestFullscreen on remote-screen-viewer and document.fullscreenElement is set; the guided message reaches the client chat; privacy ON shows the client overlay with only TERMINAR ASSISTÊNCIA, the toggle label changes to DESATIVAR, the badge shows and the technician video keeps playing; privacy OFF removes the overlay and the badge; the A11y and Logs tabs work; end -> public-ended. Web clients get every cmd-* button disabled, plus the explanation hint. Simulated android (platform rewritten to android, consent control:true sent over WS): the buttons become enabled; video clicks map letterbox-aware (0.249/0.749 and 0.5/0.5 match the targets; a click on the letterbox sends nothing; right click -> long_press 0.899/0.098); at 200% zoom 0.2998/0.3996 matches the target; every nav button, X/Y click/long, text and request_tree reach the device. Regression: Dashboard, Atendimentos, Dispositivos, Links and Configurações load for admin; tech2 opening tech1's session -> toast 'Sessão não encontrada' and redirect to /crm; an ended session shows TERMINADO with no end or privacy buttons. Test data cleaned.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/requests/{rid}/start (also /take and /assign)", "issue": "Race condition. take_request does find_one(status=pending) and then _create_session, which is not atomic. 4 concurrent /start calls on the same request ALL returned 200 and created 4 open sessions for one device (reproduced in 1 of 3 runs). With one-click start, a double click or two technicians clicking at once will produce duplicate active sessions. Fix: claim the request atomically with find_one_and_update({id, status:'pending'}, {$set:{status:'assigned'}}) before creating the session (same in assign_request).", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/requests/{rid}/start", "issue": "take + accept run as 2 separate writes. If accept fails, the session is left in 'assigned'. It also emits support:assigned and then session:started, which triggers an 'Atendimento atribuído' toast on every one-click open."},
+      {"endpoint": "client_ip()", "issue": "Uses the last X-Forwarded-For entry (good, cannot be spoofed), but the limit of 10 connects/min per IP means clients behind a shared NAT can get 429. Tests also share one IP, so run the suites with -n 0 and spaced out."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CrmLayout SideNav", "issue": "On /crm/atendimentos/:id (the console with a session open) the 'Atendimentos' nav item is highlighted, not 'Consola ao Vivo'.", "selector": "[data-testid=nav-console]", "priority": "LOW"},
+      {"component": "Console load()", "issue": "When tech2 opens tech1's session, the 'Sessão não encontrada' toast is shown twice.", "selector": "[data-sonner-toast]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Console header", "issues": ["The sonner toast at the top right covers the user name and role in the header.", "At 1920x1080 the 3-column console is calc(100vh-150px) and the footer sits just at the fold; acceptable."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_console_iter2.py", "/app/backend/tests/test_crypto_conex_api.py", "/app/test_reports/pytest/pytest_results_iter2.xml"],
+  "action_items": [
+    "HIGH: make the request claim atomic in take_request/assign_request (find_one_and_update on status 'pending') so concurrent /start calls cannot create duplicate sessions.",
+    "Highlight 'Consola ao Vivo' in the nav for /crm/atendimentos/:id (or keep it consistent).",
+    "Deduplicate the 'Sessão não encontrada' toast; optionally skip the 'Atendimento atribuído' toast when the technician started the session themselves.",
+    "Remove dead code: the /crm/fila route and Queue page, plus the privacy:disable-requested handler, privacy.requested and the no-op disablePrivacy in useDeviceSession.js."
+  ],
+  "critical_code_review_comments": [
+    "server.py take_request/_create_session: non-atomic claim (see the HIGH issue).",
+    "start_request: wrap take+accept in one claim to avoid a half-finished 'assigned' state.",
+    "Counters (CrmLayout) do not reload on support:assigned or session:transferred, so ATIVAS (which counts assigned+active) can be stale after an admin assign until the next event.",
+    "THUMBS is an in-memory dict (lost on restart, not shared across workers). Fine for a single worker; document it.",
+    "Thumbnails keep streaming to admin:global while privacy mode is on. That matches the spec (the technician keeps seeing the screen); just confirm it is intended."
+  ],
+  "updated_files": ["/app/backend/tests/test_console_iter2.py (new)", "/app/backend/tests/test_crypto_conex_api.py (privacy assertions updated to the technician-only flow)"],
+  "success_rate": {"backend": "97% (32/33 checks; 1 race-condition bug)", "frontend": "100% of the requested flows; 2 low-priority UI nits"},
+  "seed_data_creation": "None kept. Temporary TEST_ links were revoked, TEST devices deleted and the pending/open sessions cleaned up (pending=0, open=0 at the end). The CRM profiles of the test users were kept.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The backend rate limit is 10 /public/connect per minute per real IP (X-Forwarded-For spoofing does not work because the last hop is used), so run test_console_iter2.py and test_crypto_conex_api.py with '-n 0' (pytest.ini enables xdist) and wait 60s between suites. UI: tickets from clerk_tickets.py are single use; sign in through window.Clerk.client.signIn.create({strategy:'ticket'}) + setActive. Client stub: add_init_script overriding getDisplayMedia with canvas.captureStream(15). To simulate android in the browser: page.route('**/api/public/connect') rewrites the body platform to 'android', wrap window.WebSocket to capture window.__ws and window.__msgs, then send consent:update {control:true} from the client WS and read remote:command from window.__msgs. Link tokens for tech1 are made via POST /api/links. Cleanup: cleanup_test_data.py, plus delete devices named TEST_* (the web UI device has the real OS, not TEST_OS).",
+  "rca of the issue": "Duplicate sessions: take_request reads the pending request with find_one and only then _create_session updates it to 'assigned'. Concurrent requests all pass the read before any write. Repro: connect a device, then send 4 parallel POST /api/requests/{rid}/start as admin -> 4x200 and 4 open sessions for the device. Mitigation: claim atomically with find_one_and_update({'id': rid, 'status': 'pending'}, {'$set': {'status': 'assigned'}}) and return 404/409 if it returns None."
+}

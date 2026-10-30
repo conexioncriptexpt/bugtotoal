@@ -1,4 +1,4 @@
-import { NavLink, Outlet, Navigate } from "react-router-dom";
+import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { Show, UserButton, useClerk } from "@clerk/react";
 import { toast } from "sonner";
 import { LayoutDashboard, Monitor, Headset, MonitorSmartphone, Link2, Settings, ShieldCheck, Wifi, WifiOff } from "lucide-react";
@@ -16,16 +16,20 @@ const NAV = [
   { to: "/crm/configuracoes", label: "Configurações", icon: Settings, id: "settings", admin: true },
 ];
 
-const SideNav = ({ isAdmin }) => (
+const SideNav = ({ isAdmin }) => {
+  const { pathname } = useLocation();
+  const inConsole = pathname.startsWith("/crm/atendimentos/");
+  return (
   <nav className="flex lg:flex-col gap-1 overflow-x-auto cc-scroll">
     {NAV.filter((n) => !n.admin || isAdmin).map(({ to, label, icon: Icon, end, id }) => (
-      <NavLink key={to} to={to} end={end} data-testid={`nav-${id}`}
-        className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap transition-colors ${isActive ? "bg-[#84CC16]/12 text-[#A3E635] border border-[#84CC16]/30" : "text-[#94A3B8] hover:text-white hover:bg-[#1A1D28] border border-transparent"}`}>
+      <NavLink key={to} to={to} end={end || id === "sessions"} data-testid={`nav-${id}`}
+        className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm whitespace-nowrap transition-colors ${isActive || (inConsole && id === "console") ? "bg-[#84CC16]/12 text-[#A3E635] border border-[#84CC16]/30" : "text-[#94A3B8] hover:text-white hover:bg-[#1A1D28] border border-transparent"}`}>
         <Icon size={18} /> {label}
       </NavLink>
     ))}
   </nav>
-);
+  );
+};
 
 const Notifier = () => {
   const { member } = useCrm();
@@ -34,7 +38,7 @@ const Notifier = () => {
     toast.success(`Novo pedido de assistência: ${r.device_name}`, { description: r.target_technician_name ? `Via link de ${r.target_technician_name}` : "Fila global" });
   });
   useRt("support:assigned", ({ session }) => {
-    if (session?.technician_id === member?.id) {
+    if (session?.technician_id === member?.id && session?.assigned_by !== member?.name) {
       beep(740);
       toast(`Atendimento atribuído: ${session.device_name}`);
     }

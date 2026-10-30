@@ -105,7 +105,6 @@ export function useDeviceSession(linkToken, soundOn) {
     });
     rt.on("privacy:enabled", () => setPrivacy({ on: true, requested: false }));
     rt.on("privacy:disabled", () => setPrivacy({ on: false, requested: false }));
-    rt.on("privacy:disable-requested", () => setPrivacy((p) => ({ ...p, requested: true })));
     rt.on("chat:message", (m) => {
       setMessages((list) => [...list, m]);
       if (m.from === "user") ping(520);
@@ -174,7 +173,6 @@ export function useDeviceSession(linkToken, soundOn) {
     setPrivacy({ on: false, requested: false });
   };
 
-  const disablePrivacy = () => {};
   // Small JPEG preview of the shared screen for the technician's list (only while the user is sharing).
   const startThumbnails = (s) => {
     const video = document.createElement("video");
@@ -201,5 +199,5 @@ export function useDeviceSession(linkToken, soundOn) {
 
   useEffect(() => teardown, [teardown]);
 
-  return { phase, techName, error, privacy, messages, connState, connect, end, disablePrivacy, sendMessage, reset };
+  return { phase, techName, error, privacy, messages, connState, connect, end, sendMessage, reset };
 }
