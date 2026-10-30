@@ -11,7 +11,7 @@ export function useDeviceSession(linkToken, soundOn) {
   const [privacy, setPrivacy] = useState({ on: false, requested: false });
   const [messages, setMessages] = useState([]);
   const [connState, setConnState] = useState("");
-  const r = useRef({ stream: null, rt: null, pc: null, sessionId: null, ice: [], token: null, pending: [] });
+  const r = useRef({ stream: null, rt: null, pc: null, sessionId: null, ice: [], token: null, pending: [], thumbTimer: null });
   const sound = useRef(soundOn);
   sound.current = soundOn;
   const ping = (f) => sound.current && beep(f);
@@ -20,6 +20,7 @@ export function useDeviceSession(linkToken, soundOn) {
 
   const teardown = useCallback(() => {
     const s = r.current;
+    clearInterval(s.thumbTimer);
     s.stream?.getTracks().forEach((t) => t.stop());
     s.pc?.close();
     s.rt?.close();
@@ -156,6 +157,7 @@ export function useDeviceSession(linkToken, soundOn) {
       s.rt = rt;
       bind(rt);
       rt.connect();
+      startThumbnails(s);
     } catch (e) {
       teardown();
       setPhase("idle");
@@ -172,7 +174,24 @@ export function useDeviceSession(linkToken, soundOn) {
     setPrivacy({ on: false, requested: false });
   };
 
-  const disablePrivacy = () => emit("privacy:disable", {});
+  const disablePrivacy = () => {};
+  // Small JPEG preview of the shared screen for the technician's list (only while the user is sharing).
+  const startThumbnails = (s) => {
+    const video = document.createElement("video");
+    video.muted = true;
+    video.srcObject = s.stream;
+    video.play().catch(() => {});
+    const canvas = document.createElement("canvas");
+    const snap = () => {
+      if (!video.videoWidth || !s.rt) return;
+      canvas.width = 320;
+      canvas.height = Math.round((320 * video.videoHeight) / video.videoWidth);
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+      s.rt.emit("device:thumbnail", { image: canvas.toDataURL("image/jpeg", 0.6) });
+    };
+    setTimeout(snap, 1500);
+    s.thumbTimer = setInterval(snap, 3000);
+  };
   const sendMessage = (text) => emit("chat:message", { text });
   const reset = () => {
     setPhase("idle");

@@ -8,7 +8,7 @@ import CrmLayout from "@/components/cc/CrmLayout";
 import Dashboard from "@/pages/crm/Dashboard";
 import Queue from "@/pages/crm/Queue";
 import Sessions from "@/pages/crm/Sessions";
-import Viewer from "@/pages/crm/Viewer";
+import Console from "@/pages/crm/Console";
 import Devices from "@/pages/crm/Devices";
 import Links from "@/pages/crm/Links";
 import SettingsPage from "@/pages/crm/Settings";
@@ -27,10 +27,11 @@ function App() {
           <Route path="/sign-in/*" element={<SignInPage />} />
           <Route path="/sign-up/*" element={<SignUpPage />} />
           <Route path="/crm" element={<CrmLayout />}>
-            <Route index element={<Dashboard />} />
+            <Route index element={<Console />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="fila" element={<Queue />} />
             <Route path="atendimentos" element={<Sessions />} />
-            <Route path="atendimentos/:id" element={<Viewer />} />
+            <Route path="atendimentos/:id" element={<Console />} />
             <Route path="dispositivos" element={<Devices />} />
             <Route path="links" element={<Links />} />
             <Route path="configuracoes" element={<SettingsPage />} />

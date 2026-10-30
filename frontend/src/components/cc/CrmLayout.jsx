@@ -1,14 +1,15 @@
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { Show, UserButton, useClerk } from "@clerk/react";
 import { toast } from "sonner";
-import { LayoutDashboard, Inbox, Headset, MonitorSmartphone, Link2, Settings, ShieldCheck, Wifi, WifiOff } from "lucide-react";
-import { CrmProvider, useCrm, useRt } from "@/context/CrmContext";
+import { LayoutDashboard, Monitor, Headset, MonitorSmartphone, Link2, Settings, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+import { CrmProvider, useCrm, useRt, useLiveLoader } from "@/context/CrmContext";
+import { api } from "@/lib/api";
 import { Wordmark, LisbonClock } from "@/components/cc/Brand";
 import { beep } from "@/lib/device";
 
 const NAV = [
-  { to: "/crm", label: "Dashboard", icon: LayoutDashboard, end: true, id: "dashboard" },
-  { to: "/crm/fila", label: "Fila de Pedidos", icon: Inbox, id: "queue" },
+  { to: "/crm", label: "Consola ao Vivo", icon: Monitor, end: true, id: "console" },
+  { to: "/crm/dashboard", label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
   { to: "/crm/atendimentos", label: "Atendimentos", icon: Headset, id: "sessions" },
   { to: "/crm/dispositivos", label: "Dispositivos", icon: MonitorSmartphone, id: "devices" },
   { to: "/crm/links", label: "Links de Assistência", icon: Link2, id: "links" },
@@ -40,6 +41,22 @@ const Notifier = () => {
   });
   useRt("error", (e) => toast.error(e.message));
   return null;
+};
+
+const Counters = () => {
+  const { data } = useLiveLoader(() => api.get("/dashboard/stats").then((r) => r.data),
+    ["support:request", "support:accepted", "session:ended", "support:cancelled", "device:online", "device:offline"]);
+  const items = [["NOVOS", data?.requests_pending, "#F59E0B"], ["ATIVAS", data?.sessions_active, "#84CC16"], ["ONLINE", data?.devices_online, "#3B82F6"]];
+  return (
+    <div className="hidden md:flex gap-4">
+      {items.map(([l, v, c]) => (
+        <div key={l} className="text-center leading-tight" data-testid={`header-counter-${l.toLowerCase()}`}>
+          <div className="font-mono font-bold" style={{ color: c }}>{v ?? 0}</div>
+          <div className="text-[9px] font-mono text-[#64748B]">{l}</div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const Shell = () => {
@@ -74,6 +91,7 @@ const Shell = () => {
             <span data-testid="realtime-status">{live ? "TEMPO REAL ATIVO" : "A RELIGAR…"}</span>
           </div>
           <div className="flex items-center gap-3">
+            <Counters />
             <LisbonClock />
             <div className="hidden sm:block text-right leading-tight">
               <div className="text-sm font-semibold" data-testid="header-member-name">{member.name}</div>

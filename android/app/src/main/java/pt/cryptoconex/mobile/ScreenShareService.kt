@@ -102,6 +102,31 @@ class ScreenShareService : Service() {
         val scale = minOf(1f, 1280f / maxOf(dm.widthPixels, dm.heightPixels))
         capturer!!.startCapture((dm.widthPixels * scale).toInt(), (dm.heightPixels * scale).toInt(), 15)
         track = factory.createVideoTrack("screen", source)
+        track!!.addSink(thumbSink)
+    }
+
+    private var lastThumb = 0L
+
+    /** Every 3 s: small JPEG preview of the shared screen for the technician's device list. */
+    private val thumbSink = VideoSink { frame ->
+        val now = System.currentTimeMillis()
+        if (now - lastThumb < 3000 || signaling == null) return@VideoSink
+        lastThumb = now
+        val w = 240; val h = (240f * frame.rotatedHeight / frame.rotatedWidth).toInt() and 0xFFFE
+        val i420 = frame.buffer.cropAndScale(0, 0, frame.buffer.width, frame.buffer.height, w, h).toI420() ?: return@VideoSink
+        try {
+            val nv21 = ByteArray(w * h * 3 / 2)
+            for (y in 0 until h) i420.dataY.position(y * i420.strideY).let { i420.dataY.get(nv21, y * w, w) }
+            var o = w * h
+            for (y in 0 until h / 2) for (x in 0 until w / 2) {
+                nv21[o++] = i420.dataV.get(y * i420.strideV + x)
+                nv21[o++] = i420.dataU.get(y * i420.strideU + x)
+            }
+            val out = java.io.ByteArrayOutputStream()
+            android.graphics.YuvImage(nv21, android.graphics.ImageFormat.NV21, w, h, null).compressToJpeg(android.graphics.Rect(0, 0, w, h), 55, out)
+            val b64 = android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+            emit("device:thumbnail", JSONObject().put("image", "data:image/jpeg;base64,$b64"))
+        } finally { i420.release() }
     }
 
     fun setIce(servers: List<PeerConnection.IceServer>) { iceServers = servers }

@@ -161,17 +161,15 @@ async def on_command(conn, d, member):
 
 
 async def on_privacy(conn, d, member, enable):
+    if conn.kind != "user":
+        raise PermissionError("Apenas o técnico controla o modo de privacidade")
     s = await _session_for(conn, d.get("session_id"), statuses=("active",))
-    if conn.kind == "user" and not member.get("permissions", {}).get("privacy", True):
+    if not member.get("permissions", {}).get("privacy", True):
         raise PermissionError("Sem permissão para o modo de privacidade")
-    if conn.kind == "user" and not enable:
-        await hub.emit(f"device:{s['device_id']}", "privacy:disable-requested", {"session_id": s["id"]})
-        await log_op(s["id"], conn.name, "privacidade", "Técnico pediu a desativação do modo de privacidade")
-        return
     await db.sessions.update_one({"id": s["id"]}, {"$set": {"privacy": enable}})
     event = "privacy:enabled" if enable else "privacy:disabled"
     await hub.emit_many([f"device:{s['device_id']}", f"session:{s['id']}"], event, {"session_id": s["id"]})
-    await log_op(s["id"], conn.name if conn.kind == "user" else "cliente", "privacidade",
+    await log_op(s["id"], conn.name, "privacidade",
                  "Modo de privacidade ativado" if enable else "Modo de privacidade desativado")
 
 
@@ -213,6 +211,26 @@ async def on_tree(conn, d, member):
     await hub.emit(f"session:{s['id']}", "accessibility:tree", d, exclude=conn)
 
 
+THUMBS: dict = {}
+
+
+async def on_thumb(conn, d, member):
+    if conn.kind != "device":
+        raise PermissionError("Apenas o dispositivo envia prévias")
+    img = str(d.get("image", ""))
+    if not img.startswith("data:image/jpeg;base64,") or len(img) > 150_000:
+        return
+    THUMBS[conn.id] = {"device_id": conn.id, "image": img, "at": now_iso()}
+    rooms = ["admin:global"]
+    req = await db.support_requests.find_one({"device_id": conn.id, "status": {"$in": ["pending", "assigned", "accepted"]}}, {"_id": 0})
+    if req and req.get("target_technician_id"):
+        rooms.append(f"technician:{req['target_technician_id']}")
+    s = await db.sessions.find_one({"device_id": conn.id, "status": {"$in": list(OPEN)}}, {"_id": 0, "technician_id": 1})
+    if s:
+        rooms.append(f"technician:{s['technician_id']}")
+    await hub.emit_many(rooms, "device:thumbnail", THUMBS[conn.id])
+
+
 async def on_end(conn, d, member):
     s = await _session_for(conn, d.get("session_id"))
     await end_session(s["id"], conn.name if conn.kind == "user" else "cliente", "terminada pelo cliente" if conn.kind == "device" else "terminada pelo técnico")
@@ -231,6 +249,7 @@ HANDLERS = {
     "chat:message": on_chat,
     "accessibility:tree": on_tree,
     "session:end": on_end,
+    "device:thumbnail": on_thumb,
 }
 
 
@@ -252,6 +271,7 @@ async def _device_online(conn: Conn):
 async def _device_offline(conn: Conn):
     if hub.present(f"device:{conn.id}"):
         return
+    THUMBS.pop(conn.id, None)
     await db.devices.update_one({"id": conn.id}, {"$set": {"online": False, "last_seen": now_iso()}})
     await hub.emit("admin:global", "device:offline", {"device_id": conn.id})
     s = await db.sessions.find_one({"device_id": conn.id, "status": {"$in": list(OPEN)}}, {"_id": 0})

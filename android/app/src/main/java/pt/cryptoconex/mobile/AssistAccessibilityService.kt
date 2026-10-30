@@ -78,16 +78,17 @@ class AssistAccessibilityService : AccessibilityService() {
     /** Executes a validated remote command. Server already enforced auth/consent; we re-check locally. */
     fun handle(cmd: JSONObject) {
         val svc = session ?: return
-        val dm = resources.displayMetrics
+        val (sw, sh) = screenSize()
         fun px(k: String, size: Int) = (cmd.optDouble(k, 0.5).coerceIn(0.0, 1.0) * size).toFloat()
         when (cmd.optString("type")) {
-            "click" -> tap(px("x", dm.widthPixels), px("y", dm.heightPixels), 60)
-            "long_press" -> tap(px("x", dm.widthPixels), px("y", dm.heightPixels), 700)
-            "double_click" -> { tap(px("x", dm.widthPixels), px("y", dm.heightPixels), 50); tap(px("x", dm.widthPixels), px("y", dm.heightPixels), 50) }
+            "click" -> tap(px("x", sw), px("y", sh), 60)
+            "long_press" -> tap(px("x", sw), px("y", sh), 800)
+            "double_click" -> { tap(px("x", sw), px("y", sh), 50); android.os.Handler(mainLooper).postDelayed({ tap(px("x", sw), px("y", sh), 50) }, 120) }
             "scroll", "swipe" -> {
-                val dy = cmd.optInt("dy", 3)
-                val cx = dm.widthPixels / 2f; val cy = dm.heightPixels / 2f
-                swipe(cx, cy, cx, (cy - dy * dm.heightPixels / 10f).coerceIn(10f, dm.heightPixels - 10f))
+                val dy = cmd.optInt("dy", 0); val dx = cmd.optInt("dx", 0)
+                val cx = sw / 2f; val cy = sh / 2f
+                // Finger moves opposite to the content: "Cima" (dy<0) scrolls content up -> finger moves down.
+                swipe(cx, cy, (cx - dx * sw / 8f).coerceIn(10f, sw - 10f), (cy - dy * sh / 10f).coerceIn(10f, sh - 10f))
             }
             "back" -> performGlobalAction(GLOBAL_ACTION_BACK)
             "home" -> performGlobalAction(GLOBAL_ACTION_HOME)
@@ -104,6 +105,13 @@ class AssistAccessibilityService : AccessibilityService() {
         }
     }
 
+    /** Real full-screen size (incl. status/nav bars) = the same area captured by MediaProjection. */
+    private fun screenSize(): Pair<Int, Int> {
+        val wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        return if (android.os.Build.VERSION.SDK_INT >= 30) wm.maximumWindowMetrics.bounds.let { it.width() to it.height() }
+        else android.util.DisplayMetrics().also { @Suppress("DEPRECATION") wm.defaultDisplay.getRealMetrics(it) }.let { it.widthPixels to it.heightPixels }
+    }
+
     private fun tap(x: Float, y: Float, ms: Long) {
         val p = Path().apply { moveTo(x, y) }
         dispatchGesture(GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(p, 0, ms)).build(), null, null)
@@ -114,17 +122,17 @@ class AssistAccessibilityService : AccessibilityService() {
         dispatchGesture(GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(p, 0, 350)).build(), null, null)
     }
 
-    /** Privacy overlay (TYPE_ACCESSIBILITY_OVERLAY). Always includes a button so the user can switch it off. */
-    fun showPrivacy(requested: Boolean = false) {
-        if (overlay != null) { overlay?.findViewWithTag<TextView>("req")?.visibility = if (requested) 0 else 8; return }
+    /** Privacy overlay (TYPE_ACCESSIBILITY_OVERLAY), controlled by the technician. Note: Android's MediaProjection also
+     *  captures overlays, so on Android the technician sees this dark screen too (no public API to exclude it). */
+    fun showPrivacy() {
+        if (overlay != null) return
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setBackgroundColor(Color.BLACK)
             addView(TextView(context).apply { text = getString(R.string.privacy_msg); textSize = 28f; setTextColor(Color.WHITE); gravity = Gravity.CENTER })
-            addView(TextView(context).apply { tag = "req"; text = "O técnico pede para desligares este modo."; setTextColor(Color.YELLOW); visibility = if (requested) 0 else 8 })
             addView(Button(context).apply {
-                text = getString(R.string.privacy_disable); textSize = 22f
-                setOnClickListener { ScreenShareService.instance?.emit("privacy:disable", JSONObject()) }
+                text = getString(R.string.end); textSize = 20f
+                setOnClickListener { ScreenShareService.instance?.endSession(true) }
             })
         }
         val lp = WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,

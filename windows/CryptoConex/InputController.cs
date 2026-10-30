@@ -39,6 +39,7 @@ public static class InputController
         var w = GetSystemMetrics(0); var h = GetSystemMetrics(1);
         var x = Math.Clamp(cmd["x"]?.GetValue<double>() ?? 0.5, 0, 1); var y = Math.Clamp(cmd["y"]?.GetValue<double>() ?? 0.5, 0, 1);
         SetCursorPos((int)(x * w), (int)(y * h));
+        Thread.Sleep(15);
     }
 
     public static void Handle(JsonObject cmd)

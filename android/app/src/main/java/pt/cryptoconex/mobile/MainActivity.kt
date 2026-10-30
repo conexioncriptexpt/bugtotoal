@@ -113,7 +113,6 @@ class MainActivity : AppCompatActivity() {
             "webrtc:ice-candidate" -> d.optJSONObject("candidate")?.let { svc?.onRemoteIce(it) }
             "remote:command" -> d.optJSONObject("command")?.let { AssistAccessibilityService.instance?.handle(it) }
             "privacy:enabled" -> AssistAccessibilityService.instance?.showPrivacy()
-            "privacy:disable-requested" -> AssistAccessibilityService.instance?.showPrivacy(requested = true)
             "privacy:disabled" -> AssistAccessibilityService.instance?.hidePrivacy()
             "support:rejected" -> { svc?.sessionId = null; status.setText(R.string.status_waiting) }
             "session:ended", "support:cancelled" -> { svc?.endSession(false); status.setText(R.string.status_ended); resetUi() }

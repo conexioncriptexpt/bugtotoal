@@ -13,7 +13,7 @@ from clerk_auth import clerk_router
 from core import (db, log, client, now_iso, ago_iso, new_id, random_token, audit, current_member, require_super_admin,
                   create_device_token, any_caller, ice_servers, get_settings, clerk_set_password,
                   DEFAULT_PERMISSIONS, ENV, DEVICE_TOKEN_TTL)
-from realtime import ws_router, hub, end_session, log_op, session_rooms, heartbeat_loop
+from realtime import ws_router, hub, end_session, log_op, session_rooms, heartbeat_loop, THUMBS
 
 app = FastAPI(title="Crypto Conex API")
 api = APIRouter(prefix="/api")
@@ -230,6 +230,22 @@ async def stats(member: dict = Depends(current_member)):
 
 
 # ---------- requests / sessions ----------
+@api.get("/thumbnails")
+async def thumbnails(member: dict = Depends(current_member)):
+    if member["role"] == "super_admin":
+        return list(THUMBS.values())
+    ids = set(await db.support_requests.distinct("device_id", {"status": "pending", "target_technician_id": member["id"]}))
+    ids |= set(await db.sessions.distinct("device_id", {"technician_id": member["id"], "status": {"$in": ["assigned", "active"]}}))
+    return [t for d, t in THUMBS.items() if d in ids]
+
+
+@api.post("/requests/{rid}/start")
+async def start_request(rid: str, member: dict = Depends(current_member)):
+    """One-click: take a pending request and start the session immediately (no waiting queue)."""
+    s = await take_request(rid, member)
+    return await accept_session(s["id"], member)
+
+
 @api.get("/requests")
 async def list_requests(status: str = "pending", member: dict = Depends(current_member)):
     q = {"status": status} if status != "all" else {}
@@ -496,8 +512,9 @@ async def revoke_link(lid: str, member: dict = Depends(current_member)):
 async def _device_scope(member: dict) -> dict:
     if member["role"] == "super_admin":
         return {}
-    ids = await db.sessions.distinct("device_id", {"technician_id": member["id"]})
-    return {"id": {"$in": ids}}
+    ids = set(await db.sessions.distinct("device_id", {"technician_id": member["id"]}))
+    ids |= set(await db.support_requests.distinct("device_id", {"status": "pending", "target_technician_id": member["id"]}))
+    return {"id": {"$in": list(ids)}}
 
 
 @api.get("/devices")

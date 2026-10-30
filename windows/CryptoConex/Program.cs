@@ -25,8 +25,8 @@ public sealed class MainForm : Form
     readonly string? _link;
     SignalingClient? _sig;
     WebRtcSession? _rtc;
-    AssistIndicator? _indicator;
     PrivacyOverlay? _privacy;
+    readonly System.Windows.Forms.Timer _thumbTimer = new() { Interval = 3000 };
     string? _token, _sessionId, _techName;
     JsonArray _ice = new();
     bool _control;
@@ -70,6 +70,7 @@ public sealed class MainForm : Form
             _rtc = new WebRtcSession(Emit);
             _sig = new SignalingClient(() => _token!, (ev, d) => Ui(() => OnEvent(ev, d)), online => { if (!online && _sessionId != null) SetStatus("Sem ligação. A tentar de novo…"); });
             _sig.Start();
+            _thumbTimer.Tick -= SendThumbnail; _thumbTimer.Tick += SendThumbnail; _thumbTimer.Start();
             SetStatus("Pedido enviado. A aguardar um técnico…");
             _connect.Visible = false; _end.Visible = true;
         }
@@ -87,14 +88,12 @@ public sealed class MainForm : Form
             case "session:started": AskConsent(); break;
             case "technician:joined":
                 _sessionId = d["session_id"]?.ToString();
-                _indicator ??= new AssistIndicator(() => _ = End(true)); _indicator.Show();
                 _ = _rtc!.Start(_ice); break;
             case "webrtc:answer" when d["sdp"] is JsonObject sdp: _rtc?.OnAnswer(sdp); break;
             case "webrtc:ice-candidate" when d["candidate"] is JsonObject c: _rtc?.OnRemoteIce(c); break;
             case "remote:command" when _control && d["command"] is JsonObject cmd: InputController.Handle(cmd); break;
             case "privacy:enabled":
-                _privacy ??= new PrivacyOverlay(() => _ = Emit("privacy:disable", new JsonObject()), () => _ = End(true)); _privacy.Show(); break;
-            case "privacy:disable-requested": _privacy?.ShowRequested(); break;
+                _privacy ??= new PrivacyOverlay(() => _ = End(true)); _privacy.Show(); break;
             case "privacy:disabled": _privacy?.Close(); _privacy = null; break;
             case "support:rejected": _sessionId = null; SetStatus("Pedido enviado. A aguardar um técnico…"); break;
             case "session:ended" or "support:cancelled": _ = End(false); break;
@@ -110,13 +109,30 @@ public sealed class MainForm : Form
         Notify("Assistência remota ativa.");
     }
 
+    /// <summary>Small JPEG preview (320px) of the shared screen for the technician's device list.</summary>
+    void SendThumbnail(object? sender, EventArgs e)
+    {
+        try
+        {
+            var b = Screen.PrimaryScreen!.Bounds;
+            using var full = new Bitmap(b.Width, b.Height);
+            using (var g = Graphics.FromImage(full)) g.CopyFromScreen(b.Location, Point.Empty, b.Size);
+            var h = 320 * b.Height / b.Width;
+            using var small = new Bitmap(full, new Size(320, h));
+            using var ms = new MemoryStream();
+            small.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+            _ = Emit("device:thumbnail", new JsonObject { ["image"] = "data:image/jpeg;base64," + Convert.ToBase64String(ms.ToArray()) });
+        }
+        catch { /* desktop locked or secure desktop: skip */ }
+    }
+
     async Task End(bool notify)
     {
         if (notify && _sessionId != null) await Emit("session:end", new JsonObject());
         else if (notify && _token != null) await ApiClient.Cancel(_token);
+        _thumbTimer.Stop();
         _rtc?.Dispose(); _rtc = null;
         _sig?.Stop(); _sig = null;
-        _indicator?.Close(); _indicator = null;
         _privacy?.Close(); _privacy = null;
         _sessionId = null; _control = false;
         Ui(() => { _connect.Visible = true; _connect.Enabled = true; _end.Visible = false; Show(); });

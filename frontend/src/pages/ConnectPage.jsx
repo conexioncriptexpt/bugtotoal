@@ -13,16 +13,12 @@ const PHASE_TEXT = {
   active: "Assistência ativa",
 };
 
-const PrivacyOverlay = ({ requested, onDisable, onEnd }) => (
+const PrivacyOverlay = ({ onEnd }) => (
   <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center gap-8 p-6 text-center" role="alertdialog" aria-live="assertive" data-testid="client-privacy-overlay">
     <Loader2 className="animate-spin text-[#84CC16]" size={56} />
     <p className="font-display text-3xl sm:text-4xl font-black">Ajuste Técnico — Aguarde...</p>
-    <p className="text-[#94A3B8] max-w-md">O modo de privacidade está ativo. O técnico continua a ver o teu ecrã.</p>
-    {requested && <p className="text-amber-300 font-semibold" data-testid="client-privacy-requested">O técnico pede para desligares este modo.</p>}
-    <div className="flex flex-col sm:flex-row gap-4">
-      <button onClick={onDisable} className="cc-btn-lime text-xl px-8 py-5 rounded-2xl" data-testid="client-privacy-disable-button">DESLIGAR MODO</button>
-      <button onClick={onEnd} className="bg-red-600 hover:bg-red-500 text-white font-bold text-xl px-8 py-5 rounded-2xl" data-testid="client-privacy-end-button">TERMINAR</button>
-    </div>
+    <p className="text-[#94A3B8] max-w-md">O técnico está a fazer um ajuste. Este ecrã desaparece quando ele terminar.</p>
+    <button onClick={onEnd} className="bg-red-600 hover:bg-red-500 text-white font-bold text-xl px-8 py-5 rounded-2xl" data-testid="client-privacy-end-button">TERMINAR ASSISTÊNCIA</button>
   </div>
 );
 
@@ -131,7 +127,7 @@ export default function ConnectPage() {
           <p className="text-sm text-[#CBD5E1]">A tua privacidade é importante. A partilha do ecrã só começa depois da tua autorização.</p>
         </div>
       </main>
-      {s.privacy.on && <PrivacyOverlay requested={s.privacy.requested} onDisable={s.disablePrivacy} onEnd={s.end} />}
+      {s.privacy.on && <PrivacyOverlay onEnd={s.end} />}
     </div>
   );
 }
