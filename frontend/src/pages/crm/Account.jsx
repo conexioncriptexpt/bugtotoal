@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Eye, EyeOff } from "lucide-react";
 import { api, errMsg } from "@/lib/api";
 import { setToken } from "@/lib/auth";
 import { useCrm } from "@/context/CrmContext";
@@ -14,6 +14,8 @@ export default function Account() {
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+  const type = show ? "text" : "password";
   const mismatch = confirm && next !== confirm;
 
   const save = async (e) => {
@@ -39,12 +41,15 @@ export default function Account() {
       </div>
       <form onSubmit={save} className="cc-card p-6 space-y-4" data-testid="change-password-form">
         <h2 className="font-display text-lg font-semibold flex items-center gap-2"><KeyRound size={18} className="text-[#84CC16]" /> Alterar palavra-passe</h2>
-        <input type="password" required autoComplete="current-password" placeholder="Palavra-passe atual" className={input}
+        <input type={type} required autoComplete="current-password" placeholder="Palavra-passe atual" className={input}
           value={current} onChange={(e) => setCurrent(e.target.value)} data-testid="current-password-input" />
-        <input type="password" required minLength={10} autoComplete="new-password" placeholder="Nova palavra-passe (mín. 10 caracteres)" className={input}
+        <input type={type} required minLength={10} autoComplete="new-password" placeholder="Nova palavra-passe (mín. 10 caracteres)" className={input}
           value={next} onChange={(e) => setNext(e.target.value)} data-testid="new-password-input" />
-        <input type="password" required autoComplete="new-password" placeholder="Confirmar nova palavra-passe" className={input}
+        <input type={type} required autoComplete="new-password" placeholder="Confirmar nova palavra-passe" className={input}
           value={confirm} onChange={(e) => setConfirm(e.target.value)} data-testid="confirm-password-input" />
+        <button type="button" onClick={() => setShow(!show)} className="flex items-center gap-2 text-sm text-[#94A3B8] hover:text-white" data-testid="account-toggle-password">
+          {show ? <EyeOff size={16} /> : <Eye size={16} />} {show ? "Ocultar palavras-passe" : "Mostrar palavras-passe"}
+        </button>
         {mismatch && <p className="text-sm text-red-400" data-testid="password-mismatch">As palavras-passe não coincidem.</p>}
         <button type="submit" disabled={busy || next.length < 10 || next !== confirm} className="cc-btn-lime px-5 py-3 rounded-xl disabled:opacity-40" data-testid="change-password-submit">
           {busy ? "A guardar…" : "Guardar nova palavra-passe"}
